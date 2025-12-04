@@ -20,7 +20,7 @@
  ttesp32 | sudo ttds4 -w
  ```
 
-## TTDR4
+## TTDS4
  Print PS4 Controller Master Mac Address
  ```cmd
  ttds4 -r
