@@ -10,6 +10,8 @@
  ```
 
 ## TTESP32
+ [![Baixar TTESP32][baixar_ttesp32_icon]][baixar_ttesp32]
+
  Print ESP32 Mac Address
  ```cmd
  ttesp32
@@ -21,6 +23,8 @@
  ```
 
 ## TTDS4
+ [![Baixar TTDS4][baixar_ttds4_icon]][baixar_ttds4]
+
  Print PS4 Controller Master Mac Address
  ```cmd
  ttds4 -r
@@ -35,3 +39,8 @@
  ```cmd
  ttesp32 | sudo ttds4 -w
  ```
+
+[baixar_ttesp32]: https://github.com/GabrielFrigo4/TTCC/releases/download/latest/ttesp32
+[baixar_ttds4]: https://github.com/GabrielFrigo4/TTCC/releases/download/latest/ttds4
+[baixar_ttesp32_icon]: https://img.shields.io/badge/TTESP32-Baixar-red?style=for-the-badge&logo=adobeacrobatreader
+[baixar_ttds4_icon]: https://img.shields.io/badge/TTDS4-Baixar-red?style=for-the-badge&logo=adobeacrobatreader

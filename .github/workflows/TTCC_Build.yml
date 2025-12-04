@@ -32,7 +32,7 @@ jobs:
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         with:
           tag_name: latest
-          name: Build Automático (Latest)
+          name: Tamandutech Core Collections (TTCC)
           target_commitish: ${{ github.sha }}
           files: |
             ttds4
