@@ -1,0 +1,39 @@
+name: Compilar e Lançar Binários TTCC
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build_c:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Fazer Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Instalar Dependências
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libusb-1.0-0-dev
+
+      - name: Compilar Binários
+        run: make all
+
+      - name: Atualizar Release 'latest'
+        uses: softprops/action-gh-release@v1
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: latest
+          name: Build Automático (Latest)
+          files: |
+            ttds4
+            ttesp32
+          draft: false
+          prerelease: false
+          overwrite: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

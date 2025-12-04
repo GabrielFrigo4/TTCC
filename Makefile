@@ -1,0 +1,34 @@
+CC = gcc
+CFLAGS_COMMON = -Wall -Wextra -O2
+
+LIBUSB_CFLAGS := $(shell pkg-config --cflags libusb-1.0)
+LIBUSB_LIBS   := $(shell pkg-config --libs libusb-1.0)
+
+TARGETS = ttesp32 ttds4
+
+PREFIX ?= /usr/local
+BINDIR = $(PREFIX)/bin
+
+.PHONY: all clean install uninstall
+
+all: $(TARGETS)
+
+ttesp32: ttesp32.c
+	$(CC) $(CFLAGS_COMMON) -o $@ $<
+
+ttds4: ttds4.c
+	$(CC) $(CFLAGS_COMMON) $(LIBUSB_CFLAGS) -o $@ $< $(LIBUSB_LIBS)
+
+clean:
+	rm -f $(TARGETS)
+
+install: all
+	@echo "[INFO]: Instalando Binários em $(DESTDIR)$(BINDIR)..."
+	install -d $(DESTDIR)$(BINDIR)
+	install -m 755 $(TARGETS) $(DESTDIR)$(BINDIR)
+	@echo "[INFO]: Instalação Concluída."
+
+uninstall:
+	@echo "[INFO]: Removendo Binários de $(DESTDIR)$(BINDIR)..."
+	rm -f $(addprefix $(DESTDIR)$(BINDIR)/, $(TARGETS))
+	@echo "[INFO]: Desinstalação Concluída."
