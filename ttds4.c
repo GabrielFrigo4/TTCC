@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
-#include <libusb-1.0/libusb.h>
+#include <libusb.h>
 #include "platform.h"
 
 #define DS4_VENDOR_ID		0x054C
