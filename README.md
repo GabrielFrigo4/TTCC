@@ -2,10 +2,11 @@
  Install TTCC
  ```cmd
  cd "/tmp"
- git clone "[https://github.com/GabrielFrigo4/TTCC.git](https://github.com/GabrielFrigo4/TTCC.git)"
+ git clone "https://github.com/GabrielFrigo4/TTCC.git"
  cd TTCC
  make -j$(nproc)
  sudo make install
+ cd ~
  sudo rm -r "/tmp/TTCC"
  ```
 
