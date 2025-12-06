@@ -19,8 +19,9 @@ jobs:
 
       - name: Instalar Dependências
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libusb-1.0-0-dev
+          sudo apt update
+          sudo apt upgrade
+          sudo apt install -y libusb-1.0-0-dev
 
       - name: Compilar
         run: make all
