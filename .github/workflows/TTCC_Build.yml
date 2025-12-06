@@ -11,17 +11,19 @@ permissions:
 
 jobs:
   build_linux:
-    name: Build Linux (Ubuntu)
+    name: Build Linux (Arch Linux Latest)
     runs-on: ubuntu-latest
+    container: archlinux:latest
     steps:
+      - name: Atualizar Sistema e Instalar Dependências
+        run: |
+          pacman --needed --noconfirm -Syu
+          pacman --needed --noconfirm -S git
+          pacman --needed --noconfirm -S base-devel
+          pacman --needed --noconfirm -S libusb
+
       - name: Checkout do código
         uses: actions/checkout@v4
-
-      - name: Instalar Dependências
-        run: |
-          sudo apt update
-          sudo apt upgrade -y
-          sudo apt install -y libusb-1.0-0-dev
 
       - name: Compilar
         run: make all
@@ -48,12 +50,9 @@ jobs:
           msystem: UCRT64
           update: true
           install: >-
-            base-devel
             git
-            mingw-w64-ucrt-x86_64-gcc
-            mingw-w64-ucrt-x86_64-libusb
-            mingw-w64-ucrt-x86_64-pkg-config
-            mingw-w64-ucrt-x86_64-make
+            base-devel
+            mingw-w64-ucrt-x86_64-toolchain
 
       - name: Compilar
         shell: msys2 {0}
@@ -93,7 +92,7 @@ jobs:
         with:
           tag_name: latest
           name: Tamandutech Core Collections (TTCC)
-          body: "Build automatizado contendo binários para Linux e Windows."
+          body: "Build automatizado contendo binários para Linux (Arch) e Windows."
           target_commitish: ${{ github.sha }}
           files: |
             ttds4
