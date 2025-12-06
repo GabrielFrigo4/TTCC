@@ -1,10 +1,17 @@
 CC = gcc
 CFLAGS_COMMON = -Wall -Wextra -O2
 
+ifeq ($(OS),Windows_NT)
+	EXE_EXT = .exe
+else
+	EXE_EXT =
+endif
+
 LIBUSB_CFLAGS := $(shell pkg-config --cflags libusb-1.0)
 LIBUSB_LIBS   := $(shell pkg-config --libs libusb-1.0)
 
-TARGETS = ttesp32 ttds4
+TARGETS = ttesp32$(EXE_EXT) ttds4$(EXE_EXT)
+DEPS = platform.h
 
 PREFIX ?= /usr/local
 BINDIR = $(PREFIX)/bin
@@ -13,10 +20,10 @@ BINDIR = $(PREFIX)/bin
 
 all: $(TARGETS)
 
-ttesp32: ttesp32.c
+ttesp32$(EXE_EXT): ttesp32.c $(DEPS)
 	$(CC) $(CFLAGS_COMMON) -o $@ $<
 
-ttds4: ttds4.c
+ttds4$(EXE_EXT): ttds4.c $(DEPS)
 	$(CC) $(CFLAGS_COMMON) $(LIBUSB_CFLAGS) -o $@ $< $(LIBUSB_LIBS)
 
 clean:

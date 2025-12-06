@@ -1,4 +1,4 @@
-name: Compilar e Lançar Binários
+name: Compilar e Lançar Binários (Multi-Platform)
 
 on:
   push:
@@ -6,40 +6,101 @@ on:
       - main
       - master
 
-jobs:
-  build_c:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+permissions:
+  contents: write
 
+jobs:
+  build_linux:
+    name: Build Linux (Ubuntu)
+    runs-on: ubuntu-latest
     steps:
-      - name: Fazer Checkout do código
+      - name: Checkout do código
         uses: actions/checkout@v4
 
-      - name: Instalar Dependências (libusb)
+      - name: Instalar Dependências
         run: |
           sudo apt-get update
           sudo apt-get install -y libusb-1.0-0-dev
 
-      - name: Compilar Binários
+      - name: Compilar
         run: make all
 
-      - name: Listar arquivos gerados
-        run: ls -la
+      - name: Upload Artifacts (Linux)
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-linux
+          path: |
+            ttds4
+            ttesp32
+          if-no-files-found: error
+
+  build_windows:
+    name: Build Windows (UCRT64)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            base-devel
+            git
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-libusb
+            mingw-w64-ucrt-x86_64-pkg-config
+            mingw-w64-ucrt-x86_64-make
+
+      - name: Compilar
+        shell: msys2 {0}
+        run: make all
+
+      - name: Upload Artifacts (Windows)
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-windows
+          path: |
+            ttds4.exe
+            ttesp32.exe
+          if-no-files-found: error
+
+  release:
+    name: Criar Release
+    needs: [build_linux, build_windows]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Download Artifacts (Linux)
+        uses: actions/download-artifact@v4
+        with:
+          name: binaries-linux
+
+      - name: Download Artifacts (Windows)
+        uses: actions/download-artifact@v4
+        with:
+          name: binaries-windows
+
+      - name: Listar Arquivos para verificação
+        run: ls -laR
 
       - name: Atualizar Release 'latest'
         uses: softprops/action-gh-release@v1
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         with:
           tag_name: latest
-          name: Tamandutech Core Collections (TTCC)
+          name: Tamandutech Core Collections (TTCC) - Latest Build
+          body: "Build automatizado contendo binários para Linux e Windows."
           target_commitish: ${{ github.sha }}
           files: |
             ttds4
             ttesp32
+            ttds4.exe
+            ttesp32.exe
           draft: false
           prerelease: false
           overwrite: true
-          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

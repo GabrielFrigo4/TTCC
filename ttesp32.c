@@ -3,14 +3,36 @@
 #include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
+#include "platform.h"
 
-#define CMD_BUFFER_SIZE 256
-#define MAC_BUFFER_SIZE 18
-#define MAC_PREFIX "MAC: "
-#define MAC_PREFIX_LEN (sizeof(MAC_PREFIX) - 1)
+#define CMD_BUFFER_SIZE	256
+#define MAC_BUFFER_SIZE	18
+#define MAC_PREFIX		"MAC: "
+#define MAC_PREFIX_LEN	(sizeof(MAC_PREFIX) - 1)
+
+#ifdef PLATFORM_WINDOWS
+	#define PYTHON_BIN		"python"
+	#define CMD_SCAN_PORTS	"powershell -Command \"[System.IO.Ports.SerialPort]::GetPortNames()\""
+	#define CMD_CHECK_TOOL	"where esptool.exe >NUL 2>&1"
+	#define NULL_REDIRECT	"NUL"
+#elif defined(PLATFORM_LINUX)
+	#define PYTHON_BIN		"python3"
+	#define CMD_SCAN_PORTS	"ls /dev/ttyACM* /dev/ttyUSB* 2>/dev/null"
+	#define CMD_CHECK_TOOL	"which esptool.py >/dev/null 2>&1"
+	#define NULL_REDIRECT	"/dev/null"
+#elif defined(PLATFORM_BSD)
+	#define PYTHON_BIN		"python3"
+	#define CMD_SCAN_PORTS	"ls /dev/cuaU* /dev/ttyU* 2>/dev/null"
+	#define CMD_CHECK_TOOL	"which esptool.py >/dev/null 2>&1"
+	#define NULL_REDIRECT	"/dev/null"
+#endif
 
 bool is_esptool_installed() {
-	return system("which esptool.py >/dev/null 2>&1") == 0;
+	if (system(CMD_CHECK_TOOL) == 0) return true;
+
+	char cmd[CMD_BUFFER_SIZE];
+	snprintf(cmd, sizeof(cmd), "%s -m esptool version >%s 2>&1", PYTHON_BIN, NULL_REDIRECT);
+	return system(cmd) == 0;
 }
 
 bool extract_mac_from_output(FILE *pipe, char *mac_out) {
@@ -26,7 +48,9 @@ bool extract_mac_from_output(FILE *pipe, char *mac_out) {
 
 bool try_read_mac_from_port(const char *port, char *mac_out) {
 	char command[CMD_BUFFER_SIZE];
-	snprintf(command, sizeof(command), "python -m esptool --port %s read-mac 2>/dev/null", port);
+	snprintf(command, sizeof(command),
+			 "%s -m esptool --port %s read-mac 2>%s",
+			 PYTHON_BIN, port, NULL_REDIRECT);
 
 	FILE *pipe = popen(command, "r");
 	if (!pipe) {
@@ -40,9 +64,10 @@ bool try_read_mac_from_port(const char *port, char *mac_out) {
 }
 
 void scan_ports_and_find_mac() {
-	FILE *pipe = popen("ls /dev/ttyACM* /dev/ttyUSB* 2>/dev/null", "r");
+	FILE *pipe = popen(CMD_SCAN_PORTS, "r");
+
 	if (!pipe) {
-		perror("[ERRO]: Falha ao listar portas");
+		perror("[ERRO]: Falha ao iniciar scan de portas");
 		exit(1);
 	}
 
@@ -51,7 +76,8 @@ void scan_ports_and_find_mac() {
 	bool found = false;
 
 	while (fgets(port_path, sizeof(port_path), pipe) != NULL) {
-		port_path[strcspn(port_path, "\n")] = 0;
+		port_path[strcspn(port_path, "\r\n")] = 0;
+		if (strlen(port_path) == 0) continue;
 
 		if (try_read_mac_from_port(port_path, mac_address)) {
 			printf("%s\n", mac_address);
@@ -59,18 +85,17 @@ void scan_ports_and_find_mac() {
 			break;
 		}
 	}
-
 	pclose(pipe);
 
 	if (!found) {
-		fprintf(stderr, "[ERRO]: Nenhum dispositivo ESP32 foi encontrado ou respondeu\n");
+		fprintf(stderr, "[ERRO]: Nenhum dispositivo ESP32 foi encontrado.\n");
 		exit(1);
 	}
 }
 
 int main(int argc, char *argv[]) {
 	if (!is_esptool_installed()) {
-		fprintf(stderr, "[ERRO]: 'esptool.py' não está instalado ou não se encontra no PATH\n");
+		fprintf(stderr, "[ERRO]: 'esptool' não encontrado.\n");
 		return 1;
 	}
 

@@ -1,31 +1,31 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
-#include <stdlib.h>
 #include <libusb-1.0/libusb.h>
+#include "platform.h"
 
-#define DS4_VENDOR_ID       0x054C
-#define DS4_PRODUCT_ID_GEN1 0x05C4
-#define DS4_PRODUCT_ID_GEN2 0x09CC
+#define DS4_VENDOR_ID		0x054C
+#define DS4_PRODUCT_ID_GEN1	0x05C4
+#define DS4_PRODUCT_ID_GEN2	0x09CC
 
-#define USB_TIMEOUT_MS      5000
-#define MAC_ADDR_LEN        6
+#define USB_TIMEOUT_MS		5000
+#define MAC_ADDR_LEN		6
 
-#define REPORT_TYPE_FEATURE 0x03
-#define REPORT_ID_PAIRING   0x12
-#define REPORT_ID_STANDARD  0x05
-#define REPORT_ID_WRITE     0x13
+#define REPORT_TYPE_FEATURE	0x03
+#define REPORT_ID_PAIRING	0x12
+#define REPORT_ID_STANDARD	0x05
+#define REPORT_ID_WRITE		0x13
 
-#define USB_REQ_GET_REPORT  0x01
-#define USB_REQ_SET_REPORT  0x09
+#define USB_REQ_GET_REPORT	0x01
+#define USB_REQ_SET_REPORT	0x09
 
-#define USB_DIR_IN          0x80
-#define USB_DIR_OUT         0x00
-#define USB_TYPE_CLASS      0x20
-#define USB_RECIP_INTERFACE 0x01
+#define USB_DIR_IN			0x80
+#define USB_DIR_OUT			0x00
+#define USB_TYPE_CLASS		0x20
+#define USB_RECIP_INTERFACE	0x01
 
-#define HID_GET_REPORT      (USB_DIR_IN | USB_TYPE_CLASS | USB_RECIP_INTERFACE)
-#define HID_SET_REPORT      (USB_DIR_OUT | USB_TYPE_CLASS | USB_RECIP_INTERFACE)
+#define HID_GET_REPORT		(USB_DIR_IN | USB_TYPE_CLASS | USB_RECIP_INTERFACE)
+#define HID_SET_REPORT		(USB_DIR_OUT | USB_TYPE_CLASS | USB_RECIP_INTERFACE)
 
 void print_usage(const char *prog_name) {
 	fprintf(stderr, "[INFO]: %s [-r | -w AA:BB:CC:DD:EE:FF]\n", prog_name);
@@ -54,9 +54,11 @@ libusb_device_handle* get_device_handle(libusb_context *ctx) {
 }
 
 void prepare_device(libusb_device_handle *handle) {
-	if (libusb_kernel_driver_active(handle, 0) == 1) {
-		libusb_detach_kernel_driver(handle, 0);
-	}
+	#ifdef PLATFORM_LINUX
+		if (libusb_kernel_driver_active(handle, 0) == 1) {
+			libusb_detach_kernel_driver(handle, 0);
+		}
+	#endif
 	libusb_claim_interface(handle, 0);
 }
 
@@ -156,7 +158,7 @@ int main(int argc, char* argv[]) {
 
 	libusb_device_handle *handle = get_device_handle(ctx);
 	if (!handle) {
-		fprintf(stderr, "[ERRO]: Nenhum controle encontrado. Tente rodar com 'sudo'\n");
+		fprintf(stderr, "[ERRO]: Nenhum controle encontrado. (Windows: Verifique driver WinUSB via Zadig. Linux: use sudo)\n");
 		libusb_exit(ctx);
 		return 1;
 	}
