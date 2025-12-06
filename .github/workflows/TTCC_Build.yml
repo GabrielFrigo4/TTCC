@@ -38,7 +38,7 @@ jobs:
           if-no-files-found: error
 
   build_windows:
-    name: Build Windows (UCRT64)
+    name: Build Windows (MSYS2 UCRT64)
     runs-on: windows-latest
     steps:
       - name: Checkout do código
@@ -53,6 +53,7 @@ jobs:
             git
             base-devel
             mingw-w64-ucrt-x86_64-toolchain
+            mingw-w64-ucrt-x86_64-libusb
 
       - name: Compilar
         shell: msys2 {0}
