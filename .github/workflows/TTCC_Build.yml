@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build_linux:
-    name: Build Linux (Arch Linux Latest)
+    name: Build Linux (Arch Linux)
     runs-on: ubuntu-latest
     container: archlinux:latest
     steps:
@@ -93,7 +93,7 @@ jobs:
         with:
           tag_name: latest
           name: Tamandutech Core Collections (TTCC)
-          body: "Build automatizado contendo binários para Linux (Arch) e Windows."
+          body: "Build automatizado contendo binários para Linux e Windows."
           target_commitish: ${{ github.sha }}
           files: |
             ttds4
