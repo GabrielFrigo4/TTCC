@@ -29,7 +29,7 @@
 #endif
 
 void print_usage(const char *prog_name) {
-	fprintf(stderr, "[HELP]: %s [-i] -mac [PORT]\n", prog_name);
+	fprintf(stderr, "[HELP]: %s [-i] [-r <port>]\n", prog_name);
 }
 
 bool is_valid_port_format(const char *port) {

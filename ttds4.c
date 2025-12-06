@@ -28,7 +28,7 @@
 #define HID_SET_REPORT		(USB_DIR_OUT | USB_TYPE_CLASS | USB_RECIP_INTERFACE)
 
 void print_usage(const char *prog_name) {
-	fprintf(stderr, "[HELP]: %s [-i] [-r | -w AA:BB:CC:DD:EE:FF]\n", prog_name);
+	fprintf(stderr, "[HELP]: %s [-i] [-r | -w <mac>]\n", prog_name);
 }
 
 bool parse_mac_string(const char *mac_str, unsigned char *mac_out) {
