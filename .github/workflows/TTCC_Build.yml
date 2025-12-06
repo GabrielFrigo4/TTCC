@@ -91,7 +91,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: latest
-          name: Tamandutech Core Collections (TTCC) - Latest Build
+          name: Tamandutech Core Collections (TTCC)
           body: "Build automatizado contendo binários para Linux e Windows."
           target_commitish: ${{ github.sha }}
           files: |
