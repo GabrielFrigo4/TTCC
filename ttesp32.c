@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
+#include <ctype.h>
 #include "platform.h"
 
 #define CMD_BUFFER_SIZE	256
@@ -26,6 +27,24 @@
 	#define CMD_CHECK_TOOL	"which esptool.py >/dev/null 2>&1"
 	#define NULL_REDIRECT	"/dev/null"
 #endif
+
+void print_usage(const char *prog_name) {
+	fprintf(stderr, "[HELP]: %s [-i] -mac [PORT]\n", prog_name);
+}
+
+bool is_valid_port_format(const char *port) {
+	if (strlen(port) == 0) return false;
+	if (strstr(port, "..")) return false;
+
+	for (int i = 0; port[i] != '\0'; i++) {
+		if (!isalnum(port[i]) &&
+			port[i] != '/' && port[i] != '\\' &&
+			port[i] != '.' && port[i] != '_' && port[i] != '-') {
+			return false;
+		}
+	}
+	return true;
+}
 
 bool is_esptool_installed() {
 	if (system(CMD_CHECK_TOOL) == 0) return true;
@@ -63,7 +82,15 @@ bool try_read_mac_from_port(const char *port, char *mac_out) {
 	return success;
 }
 
-void scan_ports_and_find_mac() {
+void print_result(const char *mac, bool verbose) {
+	if (verbose) {
+		printf("[INFO]: Mac Address Read: %s\n", mac);
+	} else {
+		printf("%s\n", mac);
+	}
+}
+
+void scan_ports_and_find_mac(bool verbose) {
 	FILE *pipe = popen(CMD_SCAN_PORTS, "r");
 
 	if (!pipe) {
@@ -77,10 +104,10 @@ void scan_ports_and_find_mac() {
 
 	while (fgets(port_path, sizeof(port_path), pipe) != NULL) {
 		port_path[strcspn(port_path, "\r\n")] = 0;
-		if (strlen(port_path) == 0) continue;
+		if (!is_valid_port_format(port_path)) continue;
 
 		if (try_read_mac_from_port(port_path, mac_address)) {
-			printf("%s\n", mac_address);
+			print_result(mac_address, verbose);
 			found = true;
 			break;
 		}
@@ -99,16 +126,43 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	if (argc > 1) {
-		char mac_address[MAC_BUFFER_SIZE];
-		if (try_read_mac_from_port(argv[1], mac_address)) {
-			printf("%s\n", mac_address);
+	bool is_info = false;
+	bool is_read = false;
+	char *specified_port = NULL;
+
+	for (int i = 1; i < argc; i++) {
+		if (strcmp(argv[i], "-i") == 0) {
+			is_info = true;
+		} else if (strcmp(argv[i], "-r") == 0) {
+			is_read = true;
+		} else if (strcmp(argv[i], "-h") == 0) {
+			print_usage(argv[0]);
+			return 0;
 		} else {
-			fprintf(stderr, "[ERRO]: Falha ao obter o MAC de %s\n", argv[1]);
+			specified_port = argv[i];
+		}
+	}
+
+	if (!is_read) {
+		print_usage(argv[0]);
+		return 1;
+	}
+
+	if (specified_port) {
+		if (!is_valid_port_format(specified_port)) {
+			fprintf(stderr, "[ERRO]: Formato de porta inválido ou inseguro: %s\n", specified_port);
+			return 1;
+		}
+
+		char mac_address[MAC_BUFFER_SIZE];
+		if (try_read_mac_from_port(specified_port, mac_address)) {
+			print_result(mac_address, is_info);
+		} else {
+			fprintf(stderr, "[ERRO]: Falha ao obter o MAC de %s\n", specified_port);
 			return 1;
 		}
 	} else {
-		scan_ports_and_find_mac();
+		scan_ports_and_find_mac(is_info);
 	}
 
 	return 0;

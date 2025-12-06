@@ -28,7 +28,7 @@
 #define HID_SET_REPORT		(USB_DIR_OUT | USB_TYPE_CLASS | USB_RECIP_INTERFACE)
 
 void print_usage(const char *prog_name) {
-	fprintf(stderr, "[INFO]: %s [-r | -w AA:BB:CC:DD:EE:FF]\n", prog_name);
+	fprintf(stderr, "[HELP]: %s [-i] [-r | -w AA:BB:CC:DD:EE:FF]\n", prog_name);
 }
 
 bool parse_mac_string(const char *mac_str, unsigned char *mac_out) {
@@ -62,9 +62,14 @@ void prepare_device(libusb_device_handle *handle) {
 	libusb_claim_interface(handle, 0);
 }
 
-void print_mac_address(const unsigned char *mac, const char *label) {
-	printf("%s %02X:%02X:%02X:%02X:%02X:%02X\n", label,
-		mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+void print_mac_address(const unsigned char *mac, const char *label, bool verbose) {
+	if (verbose) {
+		printf("%s %02X:%02X:%02X:%02X:%02X:%02X\n", label,
+			mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+	} else {
+		printf("%02X:%02X:%02X:%02X:%02X:%02X\n",
+			mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+	}
 }
 
 void reverse_array(const unsigned char *src, unsigned char *dest, int len) {
@@ -73,7 +78,7 @@ void reverse_array(const unsigned char *src, unsigned char *dest, int len) {
 	}
 }
 
-void execute_read_mac(libusb_device_handle *handle) {
+void execute_read_mac(libusb_device_handle *handle, bool verbose) {
 	unsigned char buf[65];
 	int transferred;
 	uint16_t wValue;
@@ -86,7 +91,7 @@ void execute_read_mac(libusb_device_handle *handle) {
 	if (transferred > 15) {
 		unsigned char mac[MAC_ADDR_LEN];
 		reverse_array(&buf[10], mac, MAC_ADDR_LEN);
-		print_mac_address(mac, "[INFO]: Current Master MAC:");
+		print_mac_address(mac, "[INFO]: Atual Master MAC:", verbose);
 		return;
 	}
 
@@ -96,14 +101,14 @@ void execute_read_mac(libusb_device_handle *handle) {
 					wValue, 0, buf, sizeof(buf), USB_TIMEOUT_MS);
 
 	if (transferred > 6) {
-		print_mac_address(&buf[1], "[INFO]: Current Master MAC (STD):");
+		print_mac_address(&buf[1], "[INFO]: Atual Master MAC (STD):", verbose);
 		return;
 	}
 
 	fprintf(stderr, "[ERRO]: Não foi possível ler o MAC.\n");
 }
 
-void execute_write_mac(libusb_device_handle *handle, const unsigned char *mac) {
+void execute_write_mac(libusb_device_handle *handle, const unsigned char *mac, bool verbose) {
 	unsigned char buf[32];
 	memset(buf, 0, sizeof(buf));
 
@@ -116,8 +121,8 @@ void execute_write_mac(libusb_device_handle *handle, const unsigned char *mac) {
 
 	if (res < 0) {
 		fprintf(stderr, "[ERRO]: Falha na escrita: %s\n", libusb_error_name(res));
-	} else {
-		print_mac_address(mac, "[INFO]: MAC Escrito:");
+	} else if (verbose) {
+		print_mac_address(mac, "[INFO]: Novo Master MAC:", verbose);
 	}
 }
 
@@ -127,23 +132,45 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
-	bool is_read = (strcmp(argv[1], "-r") == 0);
-	bool is_write = (strcmp(argv[1], "-w") == 0);
-	bool is_help = (strcmp(argv[1], "-h") == 0);
+	bool is_info = false;
+	bool is_read = false;
+	bool is_write = false;
+	char *mac_str_arg = NULL;
 
-	if (is_help || (!is_read && !is_write)) {
-		print_usage(argv[0]);
-		return is_help ? 0 : 1;
+	for (int i = 1; i < argc; i++) {
+		if (strcmp(argv[i], "-i") == 0) {
+			is_info = true;
+		} else if (strcmp(argv[i], "-r") == 0) {
+			is_read = true;
+		} else if (strcmp(argv[i], "-w") == 0) {
+			is_write = true;
+		} else if (strcmp(argv[i], "-h") == 0) {
+			print_usage(argv[0]);
+			return 0;
+		} else {
+			mac_str_arg = argv[i];
+		}
 	}
 
-	if (is_write && argc > 3) {
-		fprintf(stderr, "[ERRO]: A operação -w requer apenas um MAC Address\n");
+	if (!is_read && !is_write) {
+		print_usage(argv[0]);
+		return 1;
+	}
+
+	if (is_read && is_write) {
+		fprintf(stderr, "[ERRO]: Selecione apenas -r ou -w\n");
 		return 1;
 	}
 
 	unsigned char mac_buffer[MAC_ADDR_LEN];
 	if (is_write) {
-		bool valid_mac = (argc == 3) ? parse_mac_string(argv[2], mac_buffer) : read_mac_from_stdin(mac_buffer);
+		bool valid_mac = false;
+		if (mac_str_arg) {
+			valid_mac = parse_mac_string(mac_str_arg, mac_buffer);
+		} else {
+			valid_mac = read_mac_from_stdin(mac_buffer);
+		}
+
 		if (!valid_mac) {
 			fprintf(stderr, "[ERRO]: Formato inválido. Use AA:BB:CC:DD:EE:FF\n");
 			return 1;
@@ -166,9 +193,9 @@ int main(int argc, char* argv[]) {
 	prepare_device(handle);
 
 	if (is_read) {
-		execute_read_mac(handle);
+		execute_read_mac(handle, is_info);
 	} else {
-		execute_write_mac(handle, mac_buffer);
+		execute_write_mac(handle, mac_buffer, is_info);
 	}
 
 	libusb_release_interface(handle, 0);

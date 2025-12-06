@@ -2,7 +2,7 @@
  Install TTCC
  ```cmd
  cd "/tmp"
- git clone "https://github.com/GabrielFrigo4/TTCC.git"
+ git clone "[https://github.com/GabrielFrigo4/TTCC.git](https://github.com/GabrielFrigo4/TTCC.git)"
  cd TTCC
  make -j$(nproc)
  sudo make install
@@ -13,21 +13,21 @@
  [![Baixar TTESP32][baixar_linux_icon]][baixar_ttesp32_linux]
  [![Baixar TTESP32][baixar_win_icon]][baixar_ttesp32_win]
 
- Print ESP32 Mac Address
+ Read ESP32 Mac Address
  ```cmd
- ttesp32
+ ttesp32 -r
  ```
 
  Write ESP32 Mac Address on PS4 Controller Master Mac Address
  ```cmd
- ttesp32 | sudo ttds4 -w
+ ttesp32 -r | sudo ttds4 -w
  ```
 
 ## TTDS4
  [![Baixar TTDS4][baixar_linux_icon]][baixar_ttds4_linux]
  [![Baixar TTDS4][baixar_win_icon]][baixar_ttds4_win]
 
- Print PS4 Controller Master Mac Address
+ Read PS4 Controller Master Mac Address
  ```cmd
  ttds4 -r
  ```
@@ -39,7 +39,7 @@
 
  Write ESP32 Mac Address on PS4 Controller Master Mac Address
  ```cmd
- ttesp32 | sudo ttds4 -w
+ ttesp32 -r | sudo ttds4 -w
  ```
 
 [baixar_ttesp32_linux]: https://github.com/GabrielFrigo4/TTCC/releases/download/latest/ttesp32

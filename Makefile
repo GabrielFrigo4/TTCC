@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS_COMMON = -Wall -Wextra -O2
+CFLAGS_COMMON = -std=c23 -Wall -Wextra -O2 -D_POSIX_C_SOURCE=202405L
 
 ifeq ($(OS),Windows_NT)
 	EXE_EXT = .exe
@@ -7,7 +7,7 @@ ifeq ($(OS),Windows_NT)
 	PKG_CONFIG_FLAGS = --static
 else
 	EXE_EXT =
-	LDFLAGS_STATIC = 
+	LDFLAGS_STATIC =
 	PKG_CONFIG_FLAGS =
 endif
 
@@ -25,12 +25,15 @@ BINDIR = $(PREFIX)/bin
 all: $(TARGETS)
 
 ttesp32$(EXE_EXT): ttesp32.c $(DEPS)
+	@echo "[INFO]: Compilando ttesp32.c..."
 	$(CC) $(CFLAGS_COMMON) $(LDFLAGS_STATIC) -o $@ $<
 
 ttds4$(EXE_EXT): ttds4.c $(DEPS)
+	@echo "[INFO]: Compilando ttds4.c..."
 	$(CC) $(CFLAGS_COMMON) $(LDFLAGS_STATIC) $(LIBUSB_CFLAGS) -o $@ $< $(LIBUSB_LIBS)
 
 clean:
+	@echo "[INFO]: Limpando os Binários $(TARGETS)..."
 	rm -f $(TARGETS)
 
 install: all
