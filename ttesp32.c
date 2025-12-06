@@ -16,6 +16,11 @@
 	#define CMD_SCAN_PORTS	"powershell -Command \"[System.IO.Ports.SerialPort]::GetPortNames()\""
 	#define CMD_CHECK_TOOL	"where esptool.exe >NUL 2>&1"
 	#define NULL_REDIRECT	"NUL"
+#elif defined(PLATFORM_MACOS)
+	#define PYTHON_BIN		"python3"
+	#define CMD_SCAN_PORTS	"ls /dev/cu.usb* /dev/cu.SLAB* /dev/cu.wch* 2>/dev/null"
+	#define CMD_CHECK_TOOL	"which esptool.py >/dev/null 2>&1"
+	#define NULL_REDIRECT	"/dev/null"
 #elif defined(PLATFORM_LINUX)
 	#define PYTHON_BIN		"python3"
 	#define CMD_SCAN_PORTS	"ls /dev/ttyACM* /dev/ttyUSB* 2>/dev/null"

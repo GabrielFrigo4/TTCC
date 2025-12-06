@@ -15,26 +15,57 @@ jobs:
     runs-on: ubuntu-latest
     container: archlinux:latest
     steps:
-      - name: Atualizar Sistema e Instalar Dependências
+      - name: Instalar Dependências (Pacman)
         run: |
           pacman --needed --noconfirm -Syu
           pacman --needed --noconfirm -S git
+          pacman --needed --noconfirm -S zip
           pacman --needed --noconfirm -S base-devel
           pacman --needed --noconfirm -S libusb
 
       - name: Checkout do código
         uses: actions/checkout@v4
 
-      - name: Compilar
+      - name: Compilar (Linux)
         run: make all
+
+      - name: Criar ZIP (Linux)
+        run: zip -r linux.zip ttds4 ttesp32
 
       - name: Upload Artifacts (Linux)
         uses: actions/upload-artifact@v4
         with:
-          name: binaries-linux
-          path: |
-            ttds4
-            ttesp32
+          name: package-linux
+          path: linux.zip
+          if-no-files-found: error
+
+  build_macos:
+    name: Build MacOS
+    runs-on: macos-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Instalar Dependências (Homebrew)
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+        run: |
+          brew install git
+          brew install zip
+          brew install pkg-config
+          brew install libusb
+
+      - name: Compilar (MacOS)
+        run: make all
+
+      - name: Criar ZIP (MacOS)
+        run: zip -r macos.zip ttds4 ttesp32
+
+      - name: Upload Artifacts (MacOS)
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-macos
+          path: macos.zip
           if-no-files-found: error
 
   build_windows:
@@ -51,41 +82,49 @@ jobs:
           update: true
           install: >-
             git
+            zip
             base-devel
             mingw-w64-ucrt-x86_64-toolchain
             mingw-w64-ucrt-x86_64-libusb
 
-      - name: Compilar
+      - name: Compilar (Windows)
         shell: msys2 {0}
         run: make all
+
+      - name: Criar ZIP (Windows)
+        shell: msys2 {0}
+        run: zip -r windows.zip ttds4.exe ttesp32.exe
 
       - name: Upload Artifacts (Windows)
         uses: actions/upload-artifact@v4
         with:
-          name: binaries-windows
-          path: |
-            ttds4.exe
-            ttesp32.exe
+          name: package-windows
+          path: windows.zip
           if-no-files-found: error
 
   release:
     name: Criar Release
-    needs: [build_linux, build_windows]
+    needs: [build_linux, build_windows, build_macos]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
 
     steps:
-      - name: Download Artifacts (Linux)
+      - name: Download Artifact (Linux)
         uses: actions/download-artifact@v4
         with:
-          name: binaries-linux
+          name: package-linux
 
-      - name: Download Artifacts (Windows)
+      - name: Download Artifact (MacOS)
         uses: actions/download-artifact@v4
         with:
-          name: binaries-windows
+          name: package-macos
 
-      - name: Listar Arquivos para verificação
+      - name: Download Artifact (Windows)
+        uses: actions/download-artifact@v4
+        with:
+          name: package-windows
+
+      - name: Listar Arquivos
         run: ls -laR
 
       - name: Atualizar Release 'latest'
@@ -93,13 +132,19 @@ jobs:
         with:
           tag_name: latest
           name: Tamandutech Core Collections (TTCC)
-          body: "Build automatizado contendo binários para Linux e Windows."
+          body: |
+            Build automatizado multi-plataforma.
+            Extraia o arquivo ZIP correspondente ao seu sistema.
+
+            **Conteúdo:**
+            - `windows.zip`: Executáveis para Windows (x64)
+            - `macos.zip`: Binários para macOS (Apple Silicon/Intel)
+            - `linux.zip`: Binários para Linux (x64)
           target_commitish: ${{ github.sha }}
           files: |
-            ttds4
-            ttesp32
-            ttds4.exe
-            ttesp32.exe
+            windows.zip
+            macos.zip
+            linux.zip
           draft: false
           prerelease: false
           overwrite: true

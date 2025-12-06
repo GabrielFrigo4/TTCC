@@ -1,51 +1,84 @@
 # Tamandutech Core Collections (TTCC)
- Install TTCC
- ```cmd
+
+## Downloads (Binários Pré-Compilados)
+ Baixe o pacote completo (contém `ttesp32` e `ttds4`) para o seu sistema:
+
+ [![Baixar Windows][baixar_windows_icon]][baixar_windows_zip]
+ [![Baixar MacOS][baixar_macos_icon]][baixar_macos_zip]
+ [![Baixar Linux][baixar_linux_icon]][baixar_linux_zip]
+
+---
+
+## Compilar e Instalar (Source)
+ Caso prefira compilar manualmente.
+
+ **Dependências:**
+ * **Windows (MSYS2):** 
+ ```bash
+ pacman -S base-devel
+ pacman -S libusb
+ ```
+
+ * **MacOS (Darwin):** 
+ ```bash
+ brew install pkg-config
+ brew install libusb
+ ```
+
+ * **Linux (Arch):** 
+ ```bash
+ sudo pacman -S base-devel
+ sudo pacman -S libusb
+ ```
+
+ * **Linux (Debian):** 
+ ```bash
+ sudo apt install build-essential
+ sudo apt install libusb-1.0-0-dev
+ ```
+
+ ```bash
  cd "/tmp"
- git clone "https://github.com/GabrielFrigo4/TTCC.git"
+ git clone "[https://github.com/GabrielFrigo4/TTCC.git](https://github.com/GabrielFrigo4/TTCC.git)"
  cd TTCC
- make -j$(nproc)
+ make
  sudo make install
  cd ~
  sudo rm -r "/tmp/TTCC"
  ```
 
-## TTESP32
- [![Baixar TTESP32][baixar_linux_icon]][baixar_ttesp32_linux]
- [![Baixar TTESP32][baixar_win_icon]][baixar_ttesp32_win]
+---
 
- Read ESP32 Mac Address
- ```cmd
+## TTESP32
+ Ferramenta para leitura do MAC Address de dispositivos ESP32.
+
+ **Uso Básico:**
+ ```bash
  ttesp32 -r
  ```
 
- Write ESP32 Mac Address on PS4 Controller Master Mac Address
- ```cmd
+ **Workflow (Ler ESP32 -> Gravar no DS4):**
+ ```bash
  ttesp32 -r | sudo ttds4 -w
  ```
 
 ## TTDS4
- [![Baixar TTDS4][baixar_linux_icon]][baixar_ttds4_linux]
- [![Baixar TTDS4][baixar_win_icon]][baixar_ttds4_win]
+ Ferramenta para leitura e escrita do "Master MAC Address" em controles DualShock 4 (via USB).
 
- Read PS4 Controller Master Mac Address
- ```cmd
+ **Ler MAC Atual:**
+ ```bash
  ttds4 -r
  ```
 
- Write PS4 Controller Master Mac Address
- ```cmd
+ **Escrever Novo MAC:**
+ ```bash
  sudo ttds4 -w AA:BB:CC:DD:EE:FF
  ```
 
- Write ESP32 Mac Address on PS4 Controller Master Mac Address
- ```cmd
- ttesp32 -r | sudo ttds4 -w
- ```
+[baixar_windows_zip]: https://github.com/GabrielFrigo4/TTCC/releases/download/latest/windows.zip
+[baixar_macos_zip]: https://github.com/GabrielFrigo4/TTCC/releases/download/latest/macos.zip
+[baixar_linux_zip]: https://github.com/GabrielFrigo4/TTCC/releases/download/latest/linux.zip
 
-[baixar_ttesp32_linux]: https://github.com/GabrielFrigo4/TTCC/releases/download/latest/ttesp32
-[baixar_ttds4_linux]: https://github.com/GabrielFrigo4/TTCC/releases/download/latest/ttds4
-[baixar_ttesp32_win]: https://github.com/GabrielFrigo4/TTCC/releases/download/latest/ttesp32.exe
-[baixar_ttds4_win]: https://github.com/GabrielFrigo4/TTCC/releases/download/latest/ttds4.exe
-[baixar_linux_icon]: https://img.shields.io/badge/Linux-Baixar-red?style=for-the-badge&logo=adobeacrobatreader
-[baixar_win_icon]: https://img.shields.io/badge/Win-Baixar-blue?style=for-the-badge&logo=adobeacrobatreader
+[baixar_windows_icon]: https://img.shields.io/badge/Windows-Baixar_ZIP-blue?style=for-the-badge&logo=data:image/svg%2Bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTYgMjU2IiBmaWxsPSJ3aGl0ZSI+PHBhdGggZD0iTTAgMGgxMjF2MTIxSDB6bTEzNSAwaDEyMXYxMjFIMTM1em0tMTM1IDEzNWgxMjF2MTIxSDB6bTEzNSAwaDEyMXYxMjFIMTM1eiIvPjwvc3ZnPg==
+[baixar_macos_icon]: https://img.shields.io/badge/MacOS-Baixar_ZIP-white?style=for-the-badge&logo=apple
+[baixar_linux_icon]: https://img.shields.io/badge/Linux-Baixar_ZIP-red?style=for-the-badge&logo=linux

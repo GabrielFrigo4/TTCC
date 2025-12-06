@@ -5,6 +5,8 @@
 
 #if defined(_WIN32) || defined(__CYGWIN__)
 	#define PLATFORM_WINDOWS
+#elif defined(__APPLE__)
+	#define PLATFORM_MACOS
 #elif defined(__linux__)
 	#define PLATFORM_LINUX
 #elif defined(__FreeBSD__)
@@ -21,6 +23,12 @@
 	#define IS_WINDOWS true
 #else
 	#define IS_WINDOWS false
+#endif
+
+#ifdef PLATFORM_MACOS
+	#define IS_MACOS true
+#else
+	#define IS_MACOS false
 #endif
 
 #ifdef PLATFORM_LINUX
