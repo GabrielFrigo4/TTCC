@@ -107,6 +107,8 @@ jobs:
     needs: [build_linux, build_windows, build_macos]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    permissions:
+      contents: write
 
     steps:
       - name: Download Artifact (Linux)
@@ -124,22 +126,32 @@ jobs:
         with:
           name: package-windows
 
-      - name: Listar Arquivos
-        run: ls -laR
+      - name: Deletar Release e Tag 'latest' antigas
+        uses: dev-drprasad/delete-tag-and-release@v1.0
+        with:
+          delete_release: true
+          tag_name: latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Atualizar Release 'latest'
+      - name: Sleep for 4 seconds
+        run: sleep 4
+
+      - name: Criar Nova Release 'latest'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: latest
           name: Tamandutech Core Collections (TTCC)
           body: |
             Build automatizado multi-plataforma.
-            Extraia o arquivo ZIP correspondente ao seu sistema.
+
+            **Commit:** ${{ github.sha }}
+            **Data:** ${{ github.event.head_commit.timestamp }}
 
             **Conteúdo:**
-            - `windows.zip`: Executáveis para Windows (x64)
-            - `macos.zip`: Binários para macOS (Apple Silicon/Intel)
-            - `linux.zip`: Binários para Linux (x64)
+            - `windows.zip`: Binários (PE64 / PE32+) para Windows (X64)
+            - `macos.zip`: Binários (Mach-O64) para MacOS (X64 / AArch64)
+            - `linux.zip`: Binários (ELF64) para Linux (X64)
           target_commitish: ${{ github.sha }}
           files: |
             windows.zip
@@ -147,6 +159,5 @@ jobs:
             linux.zip
           draft: false
           prerelease: false
-          overwrite: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
