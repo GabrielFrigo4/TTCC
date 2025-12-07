@@ -12,7 +12,7 @@
 ## Compilar e Instalar (Source)
  Caso prefira compilar manualmente.
 
- **Dependências:**
+### Dependências
  * **Windows (MSYS2):** 
  ```bash
  pacman -S base-devel
@@ -37,14 +37,38 @@
  sudo apt install libusb-1.0-0-dev
  ```
 
+### Make Install
+ * **Windows (MSYS2):** 
  ```bash
  cd "/tmp"
- git clone "[https://github.com/GabrielFrigo4/TTCC.git](https://github.com/GabrielFrigo4/TTCC.git)"
+ git clone "https://github.com/GabrielFrigo4/TTCC.git"
  cd TTCC
- make
+ make -j$(nproc)
+ make install
+ cd ~
+ rm -rf "/tmp/TTCC"
+ ```
+
+ * **MacOS (Darwin):** 
+ ```bash
+ cd "/tmp"
+ git clone "https://github.com/GabrielFrigo4/TTCC.git"
+ cd TTCC
+ make -j$(sysctl -n hw.ncpu)
  sudo make install
  cd ~
- sudo rm -r "/tmp/TTCC"
+ sudo rm -rf "/tmp/TTCC"
+ ```
+
+ * **Linux (GNU):** 
+ ```bash
+ cd "/tmp"
+ git clone "https://github.com/GabrielFrigo4/TTCC.git"
+ cd TTCC
+ make -j$(nproc)
+ sudo make install
+ cd ~
+ sudo rm -rf "/tmp/TTCC"
  ```
 
 ---
