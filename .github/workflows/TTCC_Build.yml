@@ -156,9 +156,13 @@ jobs:
             **Data:** ${{ env.DATA_FORMATADA }}
 
             **Conteúdo:**
-            - `[windows.zip](https://github.com/GabrielFrigo4/TTCC/releases/download/latest/windows.zip)`: Binários (PE64 / PE32+) para Windows (X64)
-            - `[macos.zip](https://github.com/GabrielFrigo4/TTCC/releases/download/latest/macos.zip)`: Binários (Mach-O64) para MacOS (X64 / AArch64)
-            - `[linux.zip](https://github.com/GabrielFrigo4/TTCC/releases/download/latest/linux.zip)`: Binários (ELF64) para Linux (X64)
+            - `[windows.zip][baixar_windows_zip]`: Binários (PE64 / PE32+) para Windows (X64)
+            - `[macos.zip][baixar_macos_zip]`: Binários (Mach-O64) para MacOS (X64 / AArch64)
+            - `[linux.zip][baixar_linux_zip]`: Binários (ELF64) para Linux (X64)
+
+            [baixar_windows_zip]: https://github.com/GabrielFrigo4/TTCC/releases/download/latest/windows.zip
+            [baixar_macos_zip]: https://github.com/GabrielFrigo4/TTCC/releases/download/latest/macos.zip
+            [baixar_linux_zip]: https://github.com/GabrielFrigo4/TTCC/releases/download/latest/linux.zip
           target_commitish: ${{ github.sha }}
           files: |
             windows.zip
