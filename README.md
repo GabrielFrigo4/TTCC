@@ -13,10 +13,10 @@
  Caso prefira compilar manualmente.
 
 ### Dependências
- * **Windows (MSYS2):** 
+ * **Windows (MSYS2 UCRT64):** 
  ```bash
- pacman -S base-devel
- pacman -S libusb
+ pacman -S mingw-w64-ucrt-x86_64-toolchain
+ pacman -S mingw-w64-ucrt-x86_64-libusb
  ```
 
  * **MacOS (XNU):** 
@@ -38,7 +38,7 @@
  ```
 
 ### Make Install
- * **Windows (MSYS2):** 
+ * **Windows (MSYS2 UCRT64):** 
  ```bash
  cd "/tmp"
  git clone "https://github.com/GabrielFrigo4/TTCC.git"
