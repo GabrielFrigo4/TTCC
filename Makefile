@@ -23,17 +23,19 @@ ifneq (,$(findstring MINGW,$(UNAME_S))$(findstring MSYS,$(UNAME_S))$(filter Wind
         -Wl,-Bstatic $(shell pkg-config --static --libs-only-l $(1)) \
         -Wl,-Bdynamic $(shell pkg-config --static --libs-only-other $(1))
     endef
+endif
 
 # --- MACOS (XNU) ---
-else ifeq ($(UNAME_S),Darwin)
+ifeq ($(UNAME_S),Darwin)
     EXE_EXT =
     define pkg_static_link
         $(shell pkg-config --variable=libdir $(1))/$(2) \
         $(shell pkg-config --static --libs-only-other $(1))
     endef
+endif
 
 # --- LINUX (GNU) ---
-else
+ifeq ($(UNAME_S),Linux)
     EXE_EXT =
     define pkg_static_link
         -Wl,-Bstatic $(shell pkg-config --static --libs-only-l $(1)) \

@@ -21,10 +21,20 @@ jobs:
           pacman --needed --noconfirm -S git
           pacman --needed --noconfirm -S zip
           pacman --needed --noconfirm -S base-devel
-          pacman --needed --noconfirm -S libusb
 
       - name: Checkout do código
         uses: actions/checkout@v4
+
+      - name: Compilar libusb Estático (Sem Udev)
+        run: |
+          echo "[INFO]: Baixando e compilando libusb..."
+          git clone https://github.com/libusb/libusb.git
+          cd libusb
+          ./bootstrap.sh
+          ./configure --prefix=/usr --enable-static --disable-shared --disable-udev
+          make -j$(nproc)
+          make install
+          cd ..
 
       - name: Compilar (Linux)
         run: make all
