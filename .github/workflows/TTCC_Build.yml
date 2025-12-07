@@ -18,9 +18,9 @@ jobs:
       - name: Instalar Dependências (Pacman)
         run: |
           pacman --needed --noconfirm -Syu
+          pacman --needed --noconfirm -S base-devel
           pacman --needed --noconfirm -S git
           pacman --needed --noconfirm -S zip
-          pacman --needed --noconfirm -S base-devel
 
       - name: Checkout do código
         uses: actions/checkout@v4
@@ -60,10 +60,11 @@ jobs:
         env:
           HOMEBREW_NO_AUTO_UPDATE: 1
         run: |
+          brew install libusb
+          xcode-select --install
+          brew install pkg-config
           brew install git
           brew install zip
-          brew install pkg-config
-          brew install libusb
 
       - name: Compilar (Static Mode)
         run: make static
@@ -91,11 +92,11 @@ jobs:
           msystem: UCRT64
           update: true
           install: >-
+            mingw-w64-ucrt-x86_64-libusb
+            mingw-w64-ucrt-x86_64-toolchain
+            base-devel
             git
             zip
-            base-devel
-            mingw-w64-ucrt-x86_64-toolchain
-            mingw-w64-ucrt-x86_64-libusb
 
       - name: Compilar (Static Mode)
         shell: msys2 {0}

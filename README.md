@@ -36,27 +36,29 @@
 ### Toolchain
  * **Windows (MSYS2 UCRT64):** 
  ```bash
- pacman -S git
- pacman -S base-devel
  pacman -S mingw-w64-ucrt-x86_64-toolchain
+ pacman -S base-devel
+ pacman -S git
  ```
 
  * **MacOS (XNU):** 
  ```bash
+ xcode-select --install
+ brew install pkgconf
  brew install git
- brew install pkg-config
  ```
 
  * **Linux (Arch):** 
  ```bash
- sudo pacman -S git
  sudo pacman -S base-devel
+ sudo pacman -S git
  ```
 
  * **Linux (Debian):** 
  ```bash
- sudo apt install git
  sudo apt install build-essential
+ sudo apt install pkgconf
+ sudo apt install git
  ```
 
 ### Make Install
