@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build_linux:
-    name: Build Linux (Arch Linux)
+    name: Build Linux (GNU)
     runs-on: ubuntu-latest
     container: archlinux:latest
     steps:
@@ -50,7 +50,7 @@ jobs:
           if-no-files-found: error
 
   build_macos:
-    name: Build MacOS
+    name: Build MacOS (XNU)
     runs-on: macos-latest
     steps:
       - name: Checkout do código
