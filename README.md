@@ -1,6 +1,6 @@
 # Tamandutech Core Collections (TTCC)
 
-## Downloads (Binários Pré-Compilados)
+## Downloads (Binários Pré-Compilados com Links Híbridos)
  Baixe o pacote completo (contém `ttesp32` e `ttds4`) para o seu sistema:
 
  [![Baixar Windows][baixar_windows_icon]][baixar_windows_zip]
@@ -15,31 +15,48 @@
 ### Dependências
  * **Windows (MSYS2 UCRT64):** 
  ```bash
+ pacman -S mingw-w64-ucrt-x86_64-libusb
+ ```
+
+ * **MacOS (XNU):** 
+ ```bash
+ brew install libusb
+ ```
+
+ * **Linux (Arch):** 
+ ```bash
+ sudo pacman -S libusb
+ ```
+
+ * **Linux (Debian):** 
+ ```bash
+ sudo apt install libusb-1.0-0-dev
+ ```
+
+### Toolchain
+ * **Windows (MSYS2 UCRT64):** 
+ ```bash
  pacman -S git
  pacman -S base-devel
  pacman -S mingw-w64-ucrt-x86_64-toolchain
- pacman -S mingw-w64-ucrt-x86_64-libusb
  ```
 
  * **MacOS (XNU):** 
  ```bash
  brew install git
  brew install pkg-config
- brew install libusb
  ```
 
  * **Linux (Arch):** 
  ```bash
  sudo pacman -S git
  sudo pacman -S base-devel
- sudo pacman -S libusb
  ```
 
  * **Linux (Debian):** 
  ```bash
  sudo apt install git
  sudo apt install build-essential
- sudo apt install libusb-1.0-0-dev
  ```
 
 ### Make Install
