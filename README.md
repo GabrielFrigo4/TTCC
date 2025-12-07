@@ -19,7 +19,7 @@
  pacman -S libusb
  ```
 
- * **MacOS (Darwin):** 
+ * **MacOS (XNU):** 
  ```bash
  brew install pkg-config
  brew install libusb
@@ -49,7 +49,7 @@
  rm -rf "/tmp/TTCC"
  ```
 
- * **MacOS (Darwin):** 
+ * **MacOS (XNU):** 
  ```bash
  cd "/tmp"
  git clone "https://github.com/GabrielFrigo4/TTCC.git"
