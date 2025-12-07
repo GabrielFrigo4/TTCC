@@ -61,7 +61,9 @@ jobs:
           HOMEBREW_NO_AUTO_UPDATE: 1
         run: |
           brew install libusb
-          xcode-select --install
+          if ! xcode-select -p >/dev/null 2>&1; then
+              xcode-select --install
+          fi
           brew install pkg-config
           brew install git
           brew install zip

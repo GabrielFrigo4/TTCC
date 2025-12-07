@@ -43,7 +43,9 @@
 
  * **MacOS (XNU):** 
  ```bash
- xcode-select --install
+ if ! xcode-select -p >/dev/null 2>&1; then
+     xcode-select --install
+ fi
  brew install pkgconf
  brew install git
  ```
