@@ -28,7 +28,7 @@ jobs:
       - name: Compilar libusb Estático (Sem Udev)
         run: |
           echo "[INFO]: Baixando e compilando libusb..."
-          git clone https://github.com/libusb/libusb.git
+          git clone "https://github.com/libusb/libusb.git"
           cd libusb
           ./bootstrap.sh
           ./configure --prefix=/usr --enable-static --disable-shared --disable-udev
@@ -36,8 +36,8 @@ jobs:
           make install
           cd ..
 
-      - name: Compilar (Linux)
-        run: make all
+      - name: Compilar (Static Mode)
+        run: make static
 
       - name: Criar ZIP (Linux)
         run: zip -r linux.zip ttds4 ttesp32
@@ -65,8 +65,8 @@ jobs:
           brew install pkg-config
           brew install libusb
 
-      - name: Compilar (MacOS)
-        run: make all
+      - name: Compilar (Static Mode)
+        run: make static
 
       - name: Criar ZIP (MacOS)
         run: zip -r macos.zip ttds4 ttesp32
@@ -97,9 +97,9 @@ jobs:
             mingw-w64-ucrt-x86_64-toolchain
             mingw-w64-ucrt-x86_64-libusb
 
-      - name: Compilar (Windows)
+      - name: Compilar (Static Mode)
         shell: msys2 {0}
-        run: make all
+        run: make static
 
       - name: Criar ZIP (Windows)
         shell: msys2 {0}
