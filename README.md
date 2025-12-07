@@ -23,14 +23,14 @@
  brew install libusb
  ```
 
- * **Linux (Arch):** 
- ```bash
- sudo pacman -S libusb
- ```
-
  * **Linux (Debian):** 
  ```bash
  sudo apt install libusb-1.0-0-dev
+ ```
+
+ * **Linux (Arch):** 
+ ```bash
+ sudo pacman -S libusb
  ```
 
 ### Toolchain
@@ -50,17 +50,17 @@
  brew install git
  ```
 
- * **Linux (Arch):** 
- ```bash
- sudo pacman -S base-devel
- sudo pacman -S git
- ```
-
  * **Linux (Debian):** 
  ```bash
  sudo apt install build-essential
  sudo apt install pkgconf
  sudo apt install git
+ ```
+
+ * **Linux (Arch):** 
+ ```bash
+ sudo pacman -S base-devel
+ sudo pacman -S git
  ```
 
 ### Make Install
