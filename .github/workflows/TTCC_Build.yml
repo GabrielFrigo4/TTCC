@@ -137,6 +137,13 @@ jobs:
       - name: Sleep for 4 seconds
         run: sleep 4
 
+      - name: Formatar Data do Commit
+        run: |
+          export TZ="America/Sao_Paulo"
+          RAW_DATE="${{ github.event.head_commit.timestamp }}"
+          FORMATTED_DATE=$(date -d "$RAW_DATE" +'%d/%m/%Y %H:%M')
+          echo "DATA_FORMATADA=$FORMATTED_DATE" >> $GITHUB_ENV
+
       - name: Criar Nova Release 'latest'
         uses: softprops/action-gh-release@v1
         with:
@@ -146,12 +153,12 @@ jobs:
             Build automatizado multi-plataforma.
 
             **Commit:** ${{ github.sha }}
-            **Data:** ${{ github.event.head_commit.timestamp }}
+            **Data:** ${{ env.DATA_FORMATADA }}
 
             **Conteúdo:**
-            - `windows.zip`: Binários (PE64 / PE32+) para Windows (X64)
-            - `macos.zip`: Binários (Mach-O64) para MacOS (X64 / AArch64)
-            - `linux.zip`: Binários (ELF64) para Linux (X64)
+            - `[windows.zip][https://github.com/GabrielFrigo4/TTCC/releases/download/latest/windows.zip]`: Binários (PE64 / PE32+) para Windows (X64)
+            - `[macos.zip][https://github.com/GabrielFrigo4/TTCC/releases/download/latest/macos.zip]`: Binários (Mach-O64) para MacOS (X64 / AArch64)
+            - `[linux.zip][https://github.com/GabrielFrigo4/TTCC/releases/download/latest/linux.zip]`: Binários (ELF64) para Linux (X64)
           target_commitish: ${{ github.sha }}
           files: |
             windows.zip
