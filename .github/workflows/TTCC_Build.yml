@@ -18,6 +18,7 @@ jobs:
       - name: Instalar Dependências (Pacman)
         run: |
           pacman --needed --noconfirm -Syu
+          pacman --needed --noconfirm -S libserialport
           pacman --needed --noconfirm -S ncurses
           pacman --needed --noconfirm -S base-devel
           pacman --needed --noconfirm -S git
@@ -62,6 +63,7 @@ jobs:
           HOMEBREW_NO_AUTO_UPDATE: 1
         run: |
           brew install libusb
+          brew install libserialport
           brew install ncurses
           if ! xcode-select -p >/dev/null 2>&1; then
               xcode-select --install
@@ -97,6 +99,7 @@ jobs:
           update: true
           install: >-
             mingw-w64-ucrt-x86_64-libusb
+            mingw-w64-ucrt-x86_64-libserialport
             mingw-w64-ucrt-x86_64-ncurses
             mingw-w64-ucrt-x86_64-toolchain
             base-devel

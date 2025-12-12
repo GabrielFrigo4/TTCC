@@ -105,11 +105,6 @@ void action_scan_ds4(AppState *s) {
 }
 
 void action_scan_esp(AppState *s) {
-	if (!esp32_check_esptool()) {
-		set_status(s, ICON_ERROR " Erro: esptool ausente.", CP_STATUS_RED);
-		s->esp_ok = false;
-		return;
-	}
 	set_status(s, ICON_SYNC " Escaneando...", CP_STATUS_YELLOW);
 	force_render(s);
 	if (esp32_find_any_mac(s->esp_mac, sizeof(s->esp_mac))) {
@@ -283,7 +278,7 @@ void render(AppState *s) {
 		x_pos = w - strlen(help) - 2;
 	} else {
 		snprintf(help, sizeof(help), "%s Click/Enter: Select | %s Quit", ICON_MOUSE, ICON_EXIT);
-		x_pos = w - 40;
+		x_pos = w - strlen(help) + 2;
 	}
 	attron(COLOR_PAIR(CP_DEFAULT));
 	mvprintw(h - 2, x_pos, "%s", help);

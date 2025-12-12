@@ -3,7 +3,7 @@
 #include "libds4.h"
 
 static void print_help(const char *prog_name) {
-	fprintf(stderr, "[HELP]: %s [-i] [-r | -w <mac>]\n", prog_name);
+	fprintf(stdout, "[HELP]: %s [-i] [-r | -w <mac>]\n", prog_name);
 }
 
 int main(int argc, char* argv[]) {
@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
 	if (mode_read) {
 		if (ds4_get_mac(ctx, mac_bytes)) {
 			if (verbose) {
-				printf("[INFO]: MAC Lido: ");
+				fprintf(stdout, "[INFO]: MAC Lido: ");
 			}
 			ds4_print_mac(mac_bytes);
 		} else {
@@ -69,7 +69,7 @@ int main(int argc, char* argv[]) {
 	} else {
 		if (ds4_set_mac(ctx, mac_bytes)) {
 			if (verbose) {
-				printf("[INFO]: MAC Gravado: ");
+				fprintf(stdout, "[INFO]: MAC Gravado: ");
 				ds4_print_mac(mac_bytes);
 			}
 		} else {

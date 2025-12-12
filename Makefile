@@ -48,6 +48,11 @@ CFLAGS_USB := $(shell pkg-config --cflags $(PKG_USB))
 LIBS_USB_STATIC_RAW := $(shell pkg-config --static --libs $(PKG_USB))
 LIBS_USB_DYN_RAW    := $(shell pkg-config --libs $(PKG_USB))
 
+PKG_SP = libserialport
+CFLAGS_SP := $(shell pkg-config --cflags $(PKG_SP))
+LIBS_SP_STATIC_RAW := $(shell pkg-config --static --libs $(PKG_SP))
+LIBS_SP_DYN_RAW    := $(shell pkg-config --libs $(PKG_SP))
+
 PKG_TUI := $(shell pkg-config --exists ncursesw && echo ncursesw || echo ncurses)
 CFLAGS_TUI := $(shell pkg-config --cflags $(PKG_TUI))
 LIBS_TUI_DYN_RAW   := $(shell pkg-config --libs $(PKG_TUI))
@@ -70,6 +75,9 @@ ifneq ($(IS_MACOS),1)
     define link_hybrid_usb
         -Wl,-Bstatic $(LIBS_USB_STATIC_RAW) -Wl,-Bdynamic
     endef
+    define link_hybrid_sp
+        -Wl,-Bstatic $(LIBS_SP_STATIC_RAW) -Wl,-Bdynamic
+    endef
     ifeq ($(IS_WINDOWS),1)
         define link_hybrid_tui
             $(LIBS_TUI_STATIC_RAW)
@@ -83,6 +91,9 @@ else
     define link_hybrid_usb
         $(LIBS_USB_STATIC_RAW)
     endef
+    define link_hybrid_sp
+        $(LIBS_SP_STATIC_RAW)
+    endef
     define link_hybrid_tui
         $(LIBS_TUI_STATIC_RAW)
     endef
@@ -94,15 +105,18 @@ endif
 
 SELECTED_LDFLAGS =
 SELECTED_USB_LIBS = $(LIBS_USB_DYN_RAW)
+SELECTED_SP_LIBS  = $(LIBS_SP_DYN_RAW)
 SELECTED_TUI_LIBS = $(LIBS_TUI_DYN_RAW)
 
 ifneq (,$(filter static,$(MAKECMDGOALS)))
     ifeq ($(IS_WINDOWS),1)
         SELECTED_LDFLAGS += -static
         SELECTED_USB_LIBS = $(LIBS_USB_STATIC_RAW)
+        SELECTED_SP_LIBS  = $(LIBS_SP_STATIC_RAW)
         SELECTED_TUI_LIBS = $(LIBS_TUI_STATIC_RAW)
     else
         SELECTED_USB_LIBS = $(link_hybrid_usb)
+        SELECTED_SP_LIBS  = $(link_hybrid_sp)
         SELECTED_TUI_LIBS = $(link_hybrid_tui)
     endif
 endif
@@ -136,7 +150,7 @@ $(DIR_LIB)/libds4.o: $(DIR_LIB)/libds4.c $(DIR_LIB)/libds4.h $(DIR_CROSS)/platfo
 
 $(DIR_LIB)/libesp32.o: $(DIR_LIB)/libesp32.c $(DIR_LIB)/libesp32.h $(DIR_CROSS)/platform.h
 	@echo "[CC]  $@"
-	$(CC) $(CFLAGS_COMMON) $(INCLUDES) -c $< -o $@
+	$(CC) $(CFLAGS_COMMON) $(CFLAGS_SP) $(INCLUDES) -c $< -o $@
 
 $(LIB_DS4_A): $(DIR_LIB)/libds4.o
 	@echo "[AR]  $@"
@@ -152,11 +166,11 @@ $(TARGET_DS4): $(DIR_CLI)/ttds4.c $(LIB_DS4_A)
 
 $(TARGET_ESP): $(DIR_CLI)/ttesp32.c $(LIB_ESP_A)
 	@echo "[LD]  $@"
-	$(CC) $(CFLAGS_COMMON) $(SELECTED_LDFLAGS) $(INCLUDES) -o $@ $< $(LIB_ESP_A)
+	$(CC) $(CFLAGS_COMMON) $(SELECTED_LDFLAGS) $(CFLAGS_SP) $(INCLUDES) -o $@ $< $(LIB_ESP_A) $(SELECTED_SP_LIBS)
 
 $(TARGET_TUI): $(DIR_TUI)/ttcc.c $(LIB_DS4_A) $(LIB_ESP_A)
 	@echo "[LD]  $@"
-	$(CC) $(CFLAGS_COMMON) $(SELECTED_LDFLAGS) $(CFLAGS_USB) $(CFLAGS_TUI) $(INCLUDES) -o $@ $< $(LIB_DS4_A) $(LIB_ESP_A) $(SELECTED_USB_LIBS) $(SELECTED_TUI_LIBS)
+	$(CC) $(CFLAGS_COMMON) $(SELECTED_LDFLAGS) $(CFLAGS_USB) $(CFLAGS_SP) $(CFLAGS_TUI) $(INCLUDES) -o $@ $< $(LIB_DS4_A) $(LIB_ESP_A) $(SELECTED_USB_LIBS) $(SELECTED_SP_LIBS) $(SELECTED_TUI_LIBS)
 
 clean:
 	@echo "[CLEAN] Removendo artefatos..."
