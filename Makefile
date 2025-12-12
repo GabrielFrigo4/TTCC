@@ -10,33 +10,37 @@ DIR_LIB = lib
 DIR_CLI = cli
 DIR_TUI = tui
 DIR_CROSS = cross
-
 INCLUDES = -I$(DIR_CROSS) -I$(DIR_LIB)
 
-UNAME_S := $(shell uname -s)
 EXE_EXT =
+
+UNAME_S := $(shell uname -s)
 IS_WINDOWS =
+IS_MACOS =
+IS_LINUX =
 
 ifneq (,$(findstring MINGW,$(UNAME_S))$(findstring MSYS,$(UNAME_S))$(filter Windows_NT,$(OS)))
     IS_WINDOWS = 1
     EXE_EXT = .exe
-    CFLAGS_PLATFORM = -D_POSIX_C_SOURCE=202405L -D_DEFAULT_SOURCE -DNCURSES_STATIC
+    CFLAGS_PLATFORM = -D_POSIX_C_SOURCE=202405L -D_DEFAULT_SOURCE -DNCURSES_STATICE
 endif
 
 ifeq ($(UNAME_S),Darwin)
-    CFLAGS_PLATFORM = -D_POSIX_C_SOURCE=202405L -D_DARWIN_C_SOURCE
+    IS_MACOS = 1
+    CFLAGS_PLATFORM = -D_POSIX_C_SOURCE=202405L -D_DEFAULT_SOURCE -D_DARWIN_C_SOURCE
     PKG_CONFIG_PATH := $(shell brew --prefix ncurses)/lib/pkgconfig:$(PKG_CONFIG_PATH)
     export PKG_CONFIG_PATH
 endif
 
 ifeq ($(UNAME_S),Linux)
+    IS_LINUX = 1
     CFLAGS_PLATFORM = -D_POSIX_C_SOURCE=202405L -D_DEFAULT_SOURCE
 endif
 
 CFLAGS_COMMON = $(CFLAGS_BASE) $(CFLAGS_PLATFORM)
 
 # ==========================================
-# 2. DEFINIÇÃO DE BIBLIOTECAS (Raw Data)
+# 2. DEFINIÇÃO DE BIBLIOTECAS
 # ==========================================
 
 PKG_USB = libusb-1.0
@@ -48,7 +52,9 @@ PKG_TUI := $(shell pkg-config --exists ncursesw && echo ncursesw || echo ncurses
 CFLAGS_TUI := $(shell pkg-config --cflags $(PKG_TUI))
 LIBS_TUI_DYN_RAW   := $(shell pkg-config --libs $(PKG_TUI))
 
-ifeq ($(UNAME_S),Linux)
+ifeq ($(IS_WINDOWS),1)
+    LIBS_TUI_STATIC_RAW := $(shell pkg-config --static --libs $(PKG_TUI))
+else ifeq ($(IS_LINUX),1)
     NCURSES_A := $(shell find /usr/lib /usr/lib64 /lib /lib64 -name "libncursesw.a" 2>/dev/null | head -n 1)
     ifeq ($(NCURSES_A),)
         LIBS_TUI_STATIC_RAW := $(shell pkg-config --static --libs $(PKG_TUI))
@@ -60,17 +66,17 @@ else
     LIBS_TUI_STATIC_RAW := $(shell pkg-config --static --libs $(PKG_TUI))
 endif
 
-ifneq ($(UNAME_S),Darwin)
+ifneq ($(IS_MACOS),1)
     define link_hybrid_usb
         -Wl,-Bstatic $(LIBS_USB_STATIC_RAW) -Wl,-Bdynamic
     endef
-    ifeq ($(UNAME_S),Linux)
+    ifeq ($(IS_WINDOWS),1)
         define link_hybrid_tui
             $(LIBS_TUI_STATIC_RAW)
         endef
     else
         define link_hybrid_tui
-            -Wl,-Bstatic $(LIBS_TUI_STATIC_RAW) -Wl,-Bdynamic
+            $(LIBS_TUI_STATIC_RAW)
         endef
     endif
 else
@@ -83,7 +89,7 @@ else
 endif
 
 # ==========================================
-# 3. SELEÇÃO DE MODO DE BUILD (A Mágica)
+# 3. SELEÇÃO DE MODO DE BUILD
 # ==========================================
 
 SELECTED_LDFLAGS =
@@ -91,15 +97,18 @@ SELECTED_USB_LIBS = $(LIBS_USB_DYN_RAW)
 SELECTED_TUI_LIBS = $(LIBS_TUI_DYN_RAW)
 
 ifneq (,$(filter static,$(MAKECMDGOALS)))
-    SELECTED_USB_LIBS = $(link_hybrid_usb)
-    SELECTED_TUI_LIBS = $(link_hybrid_tui)
-    ifdef IS_WINDOWS
+    ifeq ($(IS_WINDOWS),1)
         SELECTED_LDFLAGS += -static
+        SELECTED_USB_LIBS = $(LIBS_USB_STATIC_RAW)
+        SELECTED_TUI_LIBS = $(LIBS_TUI_STATIC_RAW)
+    else
+        SELECTED_USB_LIBS = $(link_hybrid_usb)
+        SELECTED_TUI_LIBS = $(link_hybrid_tui)
     endif
 endif
 
 # ==========================================
-# 4. TARGETS
+# 4. TARGETS GERAIS
 # ==========================================
 
 TARGET_DS4 = ttds4$(EXE_EXT)
@@ -114,6 +123,7 @@ ALL_TARGETS = $(TARGET_ESP) $(TARGET_DS4) $(TARGET_TUI)
 .PHONY: all dynamic static clean install uninstall
 
 all: dynamic
+
 dynamic: clean $(ALL_TARGETS)
 	@echo "[INFO]: Build DINÂMICO concluído."
 
@@ -154,14 +164,8 @@ clean:
 	rm -f $(DIR_LIB)/*.a $(DIR_LIB)/*.o
 
 install:
-	@echo "[INSTALL] Instalando em $(DESTDIR)$(PREFIX)/bin..."
-	install -d $(DESTDIR)$(PREFIX)/bin
+	@echo "[INSTALL] Instalando..."
+	mkdir -p $(DESTDIR)$(PREFIX)/bin
 	install -m 755 $(TARGET_DS4) $(DESTDIR)$(PREFIX)/bin
 	install -m 755 $(TARGET_ESP) $(DESTDIR)$(PREFIX)/bin
 	install -m 755 $(TARGET_TUI) $(DESTDIR)$(PREFIX)/bin
-
-uninstall:
-	@echo "[UNINSTALL] Removendo..."
-	rm -f $(DESTDIR)$(PREFIX)/bin/$(TARGET_DS4)
-	rm -f $(DESTDIR)$(PREFIX)/bin/$(TARGET_ESP)
-	rm -f $(DESTDIR)$(PREFIX)/bin/$(TARGET_TUI)

@@ -2,10 +2,18 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <ctype.h>
 #include <locale.h>
 #include <ncurses.h>
+#include "platform.h"
+
+#if defined(PLATFORM_WINDOWS)
+#include <windows.h>
+#define usleep(x) Sleep((x)/1000)
+#else
+#include <unistd.h>
+#endif
+
 #include "libds4.h"
 #include "libesp32.h"
 
@@ -59,6 +67,7 @@ typedef struct {
 	Button buttons[BTN_COUNT];
 	int selected_idx;
 	int pressed_btn_idx;
+	int last_col_btn;
 	bool running;
 	bool dirty;
 } AppState;
@@ -168,6 +177,8 @@ void init_state(AppState *s) {
 	s->is_editing = false;
 	s->dirty = true;
 
+	s->last_col_btn = BTN_PAIR;
+
 	int y = 13;
 	int btn_w = 26;
 
@@ -265,14 +276,14 @@ void render(AppState *s) {
 	mvprintw(h - 2, 2, "%s", s->status);
 	attroff(COLOR_PAIR(s->status_pair) | A_BOLD);
 
-	char help[64];
+	char help[128];
 	int x_pos;
 	if (s->is_editing) {
 		snprintf(help, sizeof(help), "ENTER: Confirmar | ESC: Cancelar");
 		x_pos = w - strlen(help) - 2;
 	} else {
 		snprintf(help, sizeof(help), "%s Click/Enter: Select | %s Quit", ICON_MOUSE, ICON_EXIT);
-		x_pos = w - strlen(help) + 2;
+		x_pos = w - 40;
 	}
 	attron(COLOR_PAIR(CP_DEFAULT));
 	mvprintw(h - 2, x_pos, "%s", help);
@@ -317,26 +328,38 @@ void handle_nav(AppState *s, int ch) {
 	int old_idx = s->selected_idx;
 	switch (ch) {
 		case 27: case 'q': s->running = false; break;
+
 		case KEY_DOWN: case '\t':
-			if (s->selected_idx == BTN_SCAN_DS4) s->selected_idx = BTN_PAIR;
-			else if (s->selected_idx == BTN_SCAN_ESP) s->selected_idx = BTN_MANUAL;
-			else if (s->selected_idx == BTN_PAIR || s->selected_idx == BTN_MANUAL) s->selected_idx = BTN_EXIT;
-			else s->selected_idx = BTN_SCAN_DS4;
+			if (s->selected_idx == BTN_SCAN_DS4) {
+				s->selected_idx = BTN_PAIR;
+			} else if (s->selected_idx == BTN_SCAN_ESP) {
+				s->selected_idx = BTN_MANUAL;
+			} else if (s->selected_idx == BTN_PAIR || s->selected_idx == BTN_MANUAL) {
+				s->last_col_btn = s->selected_idx;
+				s->selected_idx = BTN_EXIT;
+			}
 			break;
+
 		case KEY_UP:
-			if (s->selected_idx == BTN_EXIT) s->selected_idx = BTN_PAIR;
-			else if (s->selected_idx == BTN_PAIR) s->selected_idx = BTN_SCAN_DS4;
-			else if (s->selected_idx == BTN_MANUAL) s->selected_idx = BTN_SCAN_ESP;
-			else s->selected_idx = BTN_EXIT;
+			if (s->selected_idx == BTN_EXIT) {
+				s->selected_idx = s->last_col_btn;
+			} else if (s->selected_idx == BTN_PAIR) {
+				s->selected_idx = BTN_SCAN_DS4;
+			} else if (s->selected_idx == BTN_MANUAL) {
+				s->selected_idx = BTN_SCAN_ESP;
+			}
 			break;
+
 		case KEY_RIGHT:
 			if (s->selected_idx == BTN_SCAN_DS4) s->selected_idx = BTN_SCAN_ESP;
 			else if (s->selected_idx == BTN_PAIR) s->selected_idx = BTN_MANUAL;
 			break;
+
 		case KEY_LEFT:
 			if (s->selected_idx == BTN_SCAN_ESP) s->selected_idx = BTN_SCAN_DS4;
 			else if (s->selected_idx == BTN_MANUAL) s->selected_idx = BTN_PAIR;
 			break;
+
 		case '\n': case KEY_ENTER: case ' ':
 			s->pressed_btn_idx = s->selected_idx;
 			force_render(s);
@@ -363,6 +386,9 @@ void handle_mouse(AppState *s) {
 	int hovered = get_hovered_button(s, event.x, event.y);
 	if (hovered != -1 && s->selected_idx != hovered) {
 		s->selected_idx = hovered;
+		if (hovered == BTN_PAIR || hovered == BTN_MANUAL) {
+			s->last_col_btn = hovered;
+		}
 		s->dirty = true;
 	}
 
@@ -386,6 +412,10 @@ void handle_mouse(AppState *s) {
 }
 
 void setup_ncurses() {
+#ifdef PLATFORM_WINDOWS
+	SetConsoleOutputCP(65001);
+#endif
+
 	setlocale(LC_ALL, "");
 	initscr();
 	cbreak();
@@ -393,9 +423,11 @@ void setup_ncurses() {
 	keypad(stdscr, TRUE);
 	curs_set(0);
 	set_escdelay(25);
+
 	mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
 	mouseinterval(0);
 	printf("\033[?1003h\n");
+
 	start_color();
 	use_default_colors();
 	init_pair(CP_DEFAULT, COLOR_WHITE, -1);

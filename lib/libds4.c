@@ -58,11 +58,11 @@ ds4_context_t* ds4_create_context(void) {
 		return NULL;
 	}
 
-	#ifdef PLATFORM_LINUX
+#ifdef PLATFORM_LINUX
 	if (libusb_kernel_driver_active(ctx->handle, 0) == 1) {
 		libusb_detach_kernel_driver(ctx->handle, 0);
 	}
-	#endif
+#endif
 	libusb_claim_interface(ctx->handle, 0);
 
 	return ctx;
