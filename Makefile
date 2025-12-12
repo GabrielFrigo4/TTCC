@@ -16,15 +16,13 @@ INCLUDES = -I$(DIR_CROSS) -I$(DIR_LIB)
 UNAME_S := $(shell uname -s)
 EXE_EXT =
 
-# --- Definições de Plataforma ---
-
-# 1. WINDOWS (MSYS2/MinGW)
+# 1. WINDOWS (MSYS2)
 ifneq (,$(findstring MINGW,$(UNAME_S))$(findstring MSYS,$(UNAME_S))$(filter Windows_NT,$(OS)))
     EXE_EXT = .exe
     CFLAGS_PLATFORM = -D_POSIX_C_SOURCE=202405L -D_DEFAULT_SOURCE -DNCURSES_STATIC
 endif
 
-# 2. MACOS (Darwin)
+# 2. MACOS (XNU)
 ifeq ($(UNAME_S),Darwin)
     CFLAGS_PLATFORM = -D_POSIX_C_SOURCE=202405L -D_DARWIN_C_SOURCE
     PKG_CONFIG_PATH := $(shell brew --prefix ncurses)/lib/pkgconfig:$(PKG_CONFIG_PATH)
@@ -39,7 +37,7 @@ endif
 CFLAGS_COMMON = $(CFLAGS_BASE) $(CFLAGS_PLATFORM)
 
 # ==========================================
-# DEPENDÊNCIAS (Pkg-Config)
+# DEPENDÊNCIAS
 # ==========================================
 
 PKG_USB = libusb-1.0
@@ -49,20 +47,43 @@ LIBS_USB_DYN := $(shell pkg-config --libs $(PKG_USB))
 
 PKG_TUI := $(shell pkg-config --exists ncursesw && echo ncursesw || echo ncurses)
 CFLAGS_TUI := $(shell pkg-config --cflags $(PKG_TUI))
-LIBS_TUI_STATIC := $(shell pkg-config --static --libs $(PKG_TUI))
 LIBS_TUI_DYN := $(shell pkg-config --libs $(PKG_TUI))
 
+ifeq ($(UNAME_S),Linux)
+    NCURSES_A := $(shell find /usr/lib /usr/lib64 /lib /lib64 -name "libncursesw.a" 2>/dev/null | head -n 1)
+    ifeq ($(NCURSES_A),)
+        NCURSES_A := $(shell find /usr/lib /usr/lib64 /lib /lib64 -name "libncurses.a" 2>/dev/null | head -n 1)
+    endif
+    TINFO_A := $(shell find /usr/lib /usr/lib64 /lib /lib64 -name "libtinfo.a" 2>/dev/null | head -n 1)
+
+    ifneq ($(NCURSES_A),)
+        LIBS_TUI_STATIC := $(NCURSES_A) $(TINFO_A)
+    else
+        LIBS_TUI_STATIC := $(shell pkg-config --static --libs $(PKG_TUI))
+    endif
+else
+    LIBS_TUI_STATIC := $(shell pkg-config --static --libs $(PKG_TUI))
+endif
+
 # ==========================================
-# MACROS DE LINKAGEM (Static vs Dynamic)
+# MACROS DE LINKAGEM HÍBRIDAS
 # ==========================================
 
 ifneq ($(UNAME_S),Darwin)
     define link_static_usb
         -Wl,-Bstatic $(LIBS_USB_STATIC) -Wl,-Bdynamic
     endef
-    define link_static_tui
-        -Wl,-Bstatic $(LIBS_TUI_STATIC) -Wl,-Bdynamic
-    endef
+
+    # Linux usa o arquivo .a direto (sem flag -l), Windows usa flags
+    ifeq ($(UNAME_S),Linux)
+        define link_static_tui
+            $(LIBS_TUI_STATIC)
+        endef
+    else
+        define link_static_tui
+            -Wl,-Bstatic $(LIBS_TUI_STATIC) -Wl,-Bdynamic
+        endef
+    endif
 else
     define link_static_usb
         $(LIBS_USB_STATIC)
