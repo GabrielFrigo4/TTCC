@@ -19,17 +19,17 @@ EXE_EXT =
 # 1. WINDOWS (MSYS2)
 ifneq (,$(findstring MINGW,$(UNAME_S))$(findstring MSYS,$(UNAME_S))$(filter Windows_NT,$(OS)))
     EXE_EXT = .exe
-    CFLAGS_PLATFORM = -D_WIN32
+    CFLAGS_PLATFORM = -D_POSIX_C_SOURCE=202405L -D_DEFAULT_SOURCE
 endif
 
 # 2. MACOS (Darwin)
 ifeq ($(UNAME_S),Darwin)
-    CFLAGS_PLATFORM = -D_POSIX_C_SOURCE=202405L -D_DARWIN_C_SOURCE
+    CFLAGS_PLATFORM = -D_POSIX_C_SOURCE=200809L -D_DARWIN_C_SOURCE
 endif
 
 # 3. LINUX (GNU)
 ifeq ($(UNAME_S),Linux)
-    CFLAGS_PLATFORM = -D_POSIX_C_SOURCE=202405L -D_DEFAULT_SOURCE
+    CFLAGS_PLATFORM = -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE
 endif
 
 CFLAGS_COMMON = $(CFLAGS_BASE) $(CFLAGS_PLATFORM)
@@ -40,6 +40,8 @@ CFLAGS_COMMON = $(CFLAGS_BASE) $(CFLAGS_PLATFORM)
 
 PKG_USB = libusb-1.0
 CFLAGS_USB := $(shell pkg-config --cflags $(PKG_USB))
+
+LIBS_TUI = -lncurses
 
 # Macro Windows
 ifneq (,$(findstring MINGW,$(UNAME_S))$(findstring MSYS,$(UNAME_S))$(filter Windows_NT,$(OS)))
@@ -82,7 +84,7 @@ LIB_ESP_A = $(DIR_LIB)/libesp32.a
 
 ALL_TARGETS = $(TARGET_ESP) $(TARGET_DS4) $(TARGET_TUI)
 
-.PHONY: all dynamic static clean install uninstall
+.PHONY: all dynamic static clean install uninstall install_deps
 
 all: dynamic
 
@@ -122,10 +124,10 @@ $(TARGET_ESP): $(DIR_CLI)/ttesp32.c $(LIB_ESP_A)
 	@echo "[LD]  $@"
 	$(CC) $(CFLAGS_COMMON) $(INCLUDES) -o $@ $< $(LIB_ESP_A)
 
-# 4. Linkar Executável TUI
+# 4. Linkar Executável TUI (Atualizado com LIBS_TUI)
 $(TARGET_TUI): $(DIR_TUI)/ttcc.c $(LIB_DS4_A) $(LIB_ESP_A)
 	@echo "[LD]  $@"
-	$(CC) $(CFLAGS_COMMON) $(CFLAGS_USB) $(INCLUDES) -o $@ $< $(LIB_DS4_A) $(LIB_ESP_A) $(LIBS_CURRENT_USB)
+	$(CC) $(CFLAGS_COMMON) $(CFLAGS_USB) $(INCLUDES) -o $@ $< $(LIB_DS4_A) $(LIB_ESP_A) $(LIBS_CURRENT_USB) $(LIBS_TUI)
 
 clean:
 	@echo "[CLEAN] Removendo binários e objetos..."

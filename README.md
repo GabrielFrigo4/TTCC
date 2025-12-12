@@ -18,21 +18,25 @@
  * **Windows (MSYS2 UCRT64):** 
  ```bash
  pacman -S mingw-w64-ucrt-x86_64-libusb
+ pacman -S mingw-w64-ucrt-x86_64-ncurses
  ```
 
  * **MacOS (XNU):** 
  ```bash
  brew install libusb
+ brew install ncurses
  ```
 
  * **Linux (Debian):** 
  ```bash
  sudo apt install libusb-1.0-0-dev
+ sudo apt install libncursesw5-dev
  ```
 
  * **Linux (Arch):** 
  ```bash
  sudo pacman -S libusb
+ sudo pacman -S ncurses
  ```
 
 ### Toolchain
