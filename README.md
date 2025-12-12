@@ -101,7 +101,7 @@
 
 ---
 
-## TTESP32
+## TTESP32 (CLI)
  Ferramenta para leitura do MAC Address de dispositivos ESP32.
 
  **Uso Básico:**
@@ -114,7 +114,7 @@
  ttesp32 -r | sudo ttds4 -w
  ```
 
-## TTDS4
+## TTDS4 (CLI)
  Ferramenta para leitura e escrita do "Master MAC Address" em controles DualShock 4 (via USB).
 
  **Ler MAC Atual:**
@@ -127,7 +127,9 @@
  sudo ttds4 -w AA:BB:CC:DD:EE:FF
  ```
 
-## TT-TUI
+---
+
+## TTCC (TUI)
  Interface gráfica de terminal (TUI) moderna que integra as funções de leitura e escrita em um único painel interativo.
 
  **Funcionalidades:**

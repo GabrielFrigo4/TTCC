@@ -4,7 +4,8 @@
 
 CC = gcc
 AR = ar
-CFLAGS_COMMON = -std=c23 -Wall -Wextra -O2 -D_POSIX_C_SOURCE=202405L
+
+CFLAGS_BASE = -std=c23 -Wall -Wextra -O2
 
 DIR_LIB = lib
 DIR_CLI = cli
@@ -16,9 +17,23 @@ INCLUDES = -I$(DIR_CROSS) -I$(DIR_LIB)
 UNAME_S := $(shell uname -s)
 EXE_EXT =
 
+# 1. WINDOWS (MSYS2)
 ifneq (,$(findstring MINGW,$(UNAME_S))$(findstring MSYS,$(UNAME_S))$(filter Windows_NT,$(OS)))
     EXE_EXT = .exe
+    CFLAGS_PLATFORM = -D_DEFAULT_SOURCE
 endif
+
+# 2. MACOS (Darwin)
+ifeq ($(UNAME_S),Darwin)
+    CFLAGS_PLATFORM = -D_POSIX_C_SOURCE=202405L -D_DARWIN_C_SOURCE
+endif
+
+# 3. LINUX (GNU)
+ifeq ($(UNAME_S),Linux)
+    CFLAGS_PLATFORM = -D_POSIX_C_SOURCE=202405L -D_DEFAULT_SOURCE
+endif
+
+CFLAGS_COMMON = $(CFLAGS_BASE) $(CFLAGS_PLATFORM)
 
 # ==========================================
 # 2. DEFINIÇÃO DE BIBLIOTECAS HÍBRIDAS
@@ -27,6 +42,7 @@ endif
 PKG_USB = libusb-1.0
 CFLAGS_USB := $(shell pkg-config --cflags $(PKG_USB))
 
+# Macro Windows
 ifneq (,$(findstring MINGW,$(UNAME_S))$(findstring MSYS,$(UNAME_S))$(filter Windows_NT,$(OS)))
     define libs_usb_static_macro
         -Wl,-Bstatic $(shell pkg-config --static --libs-only-l $(PKG_USB)) \
@@ -34,6 +50,7 @@ ifneq (,$(findstring MINGW,$(UNAME_S))$(findstring MSYS,$(UNAME_S))$(filter Wind
     endef
 endif
 
+# Macro MacOS
 ifeq ($(UNAME_S),Darwin)
     define libs_usb_static_macro
         $(shell pkg-config --variable=libdir $(PKG_USB))/libusb-1.0.a \
@@ -42,6 +59,7 @@ ifeq ($(UNAME_S),Darwin)
     endef
 endif
 
+# Macro Linux
 ifeq ($(UNAME_S),Linux)
     define libs_usb_static_macro
         $(shell pkg-config --variable=libdir $(PKG_USB))/libusb-1.0.a \
@@ -71,11 +89,11 @@ all: dynamic
 
 # Builds
 dynamic: LIBS_CURRENT_USB = $(LIBS_USB_DYN)
-dynamic: $(ALL_TARGETS)
+dynamic: clean $(ALL_TARGETS)
 	@echo "[INFO]: Build DINÂMICO concluído."
 
 static: LIBS_CURRENT_USB = $(LIBS_USB_STAT)
-static: $(ALL_TARGETS)
+static: clean $(ALL_TARGETS)
 	@echo "[INFO]: Build ESTÁTICO concluído."
 
 # 1. Compilar Objetos da Library
