@@ -73,8 +73,6 @@ ifneq ($(UNAME_S),Darwin)
     define link_static_usb
         -Wl,-Bstatic $(LIBS_USB_STATIC) -Wl,-Bdynamic
     endef
-
-    # Linux usa o arquivo .a direto (sem flag -l), Windows usa flags
     ifeq ($(UNAME_S),Linux)
         define link_static_tui
             $(LIBS_TUI_STATIC)
@@ -94,7 +92,7 @@ else
 endif
 
 # ==========================================
-# TARGETS
+# TARGETS GERAIS
 # ==========================================
 
 TARGET_DS4 = ttds4$(EXE_EXT)
