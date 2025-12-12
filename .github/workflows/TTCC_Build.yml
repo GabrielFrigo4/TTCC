@@ -18,7 +18,6 @@ jobs:
       - name: Instalar Dependências (Pacman)
         run: |
           pacman --needed --noconfirm -Syu
-          pacman --needed --noconfirm -S libserialport
           pacman --needed --noconfirm -S ncurses
           pacman --needed --noconfirm -S base-devel
           pacman --needed --noconfirm -S git
@@ -34,6 +33,17 @@ jobs:
           cd libusb
           ./bootstrap.sh
           ./configure --prefix=/usr --enable-static --disable-shared --disable-udev
+          make -j$(nproc)
+          make install
+          cd ..
+
+      - name: Compilar libserialport Estático
+        run: |
+          echo "[INFO]: Baixando e compilando libserialport..."
+          git clone "https://github.com/sigrokproject/libserialport.git"
+          cd libserialport
+          ./autogen.sh
+          ./configure --prefix=/usr --enable-static --disable-shared
           make -j$(nproc)
           make install
           cd ..

@@ -130,7 +130,7 @@ void action_pair(AppState *s) {
 	}
 	ds4_context_t *ctx = ds4_create_context();
 	if (!ctx) {
-		set_status(s, ICON_USB " Conecte o DS4.", CP_STATUS_RED);
+		set_status(s, ICON_USB "  Conecte o DS4.", CP_STATUS_RED);
 		return;
 	}
 	uint8_t target[6];

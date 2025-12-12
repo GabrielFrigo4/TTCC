@@ -7,6 +7,10 @@
 #include <time.h>
 #include <libserialport.h>
 
+#if PLATFORM_WINDOWS
+#include <windows.h>
+#endif
+
 #include "libesp32.h"
 #include "platform.h"
 
