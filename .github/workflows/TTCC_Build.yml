@@ -112,10 +112,13 @@ jobs:
         run: |
           echo "Identificando dependências DLL..."
           for exe in ttds4.exe ttesp32.exe ttcc.exe; do
-             deps=$(ldd $exe | grep "/ucrt64/" | awk '{print $3}')
+             echo "Processando $exe..."
+             deps=$(ldd $exe | grep -iv "/c/Windows" | grep " => " | awk '{print $3}')
              for dep in $deps; do
-               cp -u "$dep" .
-               echo "Bundled: $dep"
+               if [ -f "$dep" ]; then
+                  cp -u "$dep" .
+                  echo "  -> Bundled: $dep"
+               fi
              done
           done
 
