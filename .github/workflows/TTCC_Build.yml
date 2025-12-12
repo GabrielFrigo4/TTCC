@@ -41,7 +41,7 @@ jobs:
         run: make static
 
       - name: Criar ZIP (Linux)
-        run: zip -r linux.zip ttds4 ttesp32
+        run: zip -r linux.zip ttds4 ttesp32 ttcc
 
       - name: Upload Artifacts (Linux)
         uses: actions/upload-artifact@v4
@@ -74,7 +74,7 @@ jobs:
         run: make static
 
       - name: Criar ZIP (MacOS)
-        run: zip -r macos.zip ttds4 ttesp32
+        run: zip -r macos.zip ttds4 ttesp32 ttcc
 
       - name: Upload Artifacts (MacOS)
         uses: actions/upload-artifact@v4
@@ -109,7 +109,7 @@ jobs:
 
       - name: Criar ZIP (Windows)
         shell: msys2 {0}
-        run: zip -r windows.zip ttds4.exe ttesp32.exe
+        run: zip -r windows.zip ttds4.exe ttesp32.exe ttcc.exe
 
       - name: Upload Artifacts (Windows)
         uses: actions/upload-artifact@v4
