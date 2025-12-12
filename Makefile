@@ -1,5 +1,5 @@
 # ==========================================
-# CONFIGURAÇÕES GERAIS
+# 1. CONFIGURAÇÕES GERAIS
 # ==========================================
 
 CC = gcc
@@ -15,21 +15,20 @@ INCLUDES = -I$(DIR_CROSS) -I$(DIR_LIB)
 
 UNAME_S := $(shell uname -s)
 EXE_EXT =
+IS_WINDOWS =
 
-# 1. WINDOWS (MSYS2)
 ifneq (,$(findstring MINGW,$(UNAME_S))$(findstring MSYS,$(UNAME_S))$(filter Windows_NT,$(OS)))
+    IS_WINDOWS = 1
     EXE_EXT = .exe
     CFLAGS_PLATFORM = -D_POSIX_C_SOURCE=202405L -D_DEFAULT_SOURCE -DNCURSES_STATIC
 endif
 
-# 2. MACOS (XNU)
 ifeq ($(UNAME_S),Darwin)
     CFLAGS_PLATFORM = -D_POSIX_C_SOURCE=202405L -D_DARWIN_C_SOURCE
     PKG_CONFIG_PATH := $(shell brew --prefix ncurses)/lib/pkgconfig:$(PKG_CONFIG_PATH)
     export PKG_CONFIG_PATH
 endif
 
-# 3. LINUX (GNU)
 ifeq ($(UNAME_S),Linux)
     CFLAGS_PLATFORM = -D_POSIX_C_SOURCE=202405L -D_DEFAULT_SOURCE
 endif
@@ -37,62 +36,70 @@ endif
 CFLAGS_COMMON = $(CFLAGS_BASE) $(CFLAGS_PLATFORM)
 
 # ==========================================
-# DEPENDÊNCIAS
+# 2. DEFINIÇÃO DE BIBLIOTECAS (Raw Data)
 # ==========================================
 
 PKG_USB = libusb-1.0
 CFLAGS_USB := $(shell pkg-config --cflags $(PKG_USB))
-LIBS_USB_STATIC := $(shell pkg-config --static --libs $(PKG_USB))
-LIBS_USB_DYN := $(shell pkg-config --libs $(PKG_USB))
+LIBS_USB_STATIC_RAW := $(shell pkg-config --static --libs $(PKG_USB))
+LIBS_USB_DYN_RAW    := $(shell pkg-config --libs $(PKG_USB))
 
 PKG_TUI := $(shell pkg-config --exists ncursesw && echo ncursesw || echo ncurses)
 CFLAGS_TUI := $(shell pkg-config --cflags $(PKG_TUI))
-LIBS_TUI_DYN := $(shell pkg-config --libs $(PKG_TUI))
+LIBS_TUI_DYN_RAW   := $(shell pkg-config --libs $(PKG_TUI))
 
 ifeq ($(UNAME_S),Linux)
     NCURSES_A := $(shell find /usr/lib /usr/lib64 /lib /lib64 -name "libncursesw.a" 2>/dev/null | head -n 1)
     ifeq ($(NCURSES_A),)
-        NCURSES_A := $(shell find /usr/lib /usr/lib64 /lib /lib64 -name "libncurses.a" 2>/dev/null | head -n 1)
-    endif
-    TINFO_A := $(shell find /usr/lib /usr/lib64 /lib /lib64 -name "libtinfo.a" 2>/dev/null | head -n 1)
-
-    ifneq ($(NCURSES_A),)
-        LIBS_TUI_STATIC := $(NCURSES_A) $(TINFO_A)
+        LIBS_TUI_STATIC_RAW := $(shell pkg-config --static --libs $(PKG_TUI))
     else
-        LIBS_TUI_STATIC := $(shell pkg-config --static --libs $(PKG_TUI))
+        TINFO_A := $(shell find /usr/lib /usr/lib64 /lib /lib64 -name "libtinfo.a" 2>/dev/null | head -n 1)
+        LIBS_TUI_STATIC_RAW := $(NCURSES_A) $(TINFO_A)
     endif
 else
-    LIBS_TUI_STATIC := $(shell pkg-config --static --libs $(PKG_TUI))
+    LIBS_TUI_STATIC_RAW := $(shell pkg-config --static --libs $(PKG_TUI))
 endif
-
-# ==========================================
-# MACROS DE LINKAGEM HÍBRIDAS
-# ==========================================
 
 ifneq ($(UNAME_S),Darwin)
-    define link_static_usb
-        -Wl,-Bstatic $(LIBS_USB_STATIC) -Wl,-Bdynamic
+    define link_hybrid_usb
+        -Wl,-Bstatic $(LIBS_USB_STATIC_RAW) -Wl,-Bdynamic
     endef
     ifeq ($(UNAME_S),Linux)
-        define link_static_tui
-            $(LIBS_TUI_STATIC)
+        define link_hybrid_tui
+            $(LIBS_TUI_STATIC_RAW)
         endef
     else
-        define link_static_tui
-            -Wl,-Bstatic $(LIBS_TUI_STATIC) -Wl,-Bdynamic
+        define link_hybrid_tui
+            -Wl,-Bstatic $(LIBS_TUI_STATIC_RAW) -Wl,-Bdynamic
         endef
     endif
 else
-    define link_static_usb
-        $(LIBS_USB_STATIC)
+    define link_hybrid_usb
+        $(LIBS_USB_STATIC_RAW)
     endef
-    define link_static_tui
-        $(LIBS_TUI_STATIC)
+    define link_hybrid_tui
+        $(LIBS_TUI_STATIC_RAW)
     endef
 endif
 
 # ==========================================
-# TARGETS GERAIS
+# 3. SELEÇÃO DE MODO DE BUILD (A Mágica)
+# ==========================================
+
+SELECTED_LDFLAGS =
+SELECTED_USB_LIBS = $(LIBS_USB_DYN_RAW)
+SELECTED_TUI_LIBS = $(LIBS_TUI_DYN_RAW)
+
+ifneq (,$(filter static,$(MAKECMDGOALS)))
+    SELECTED_USB_LIBS = $(link_hybrid_usb)
+    SELECTED_TUI_LIBS = $(link_hybrid_tui)
+    ifdef IS_WINDOWS
+        SELECTED_LDFLAGS += -static
+    endif
+endif
+
+# ==========================================
+# 4. TARGETS
 # ==========================================
 
 TARGET_DS4 = ttds4$(EXE_EXT)
@@ -104,17 +111,12 @@ LIB_ESP_A = $(DIR_LIB)/libesp32.a
 
 ALL_TARGETS = $(TARGET_ESP) $(TARGET_DS4) $(TARGET_TUI)
 
-.PHONY: all dynamic static clean install uninstall install_deps
+.PHONY: all dynamic static clean install uninstall
 
 all: dynamic
-
-dynamic: CURRENT_USB = $(LIBS_USB_DYN)
-dynamic: CURRENT_TUI = $(LIBS_TUI_DYN)
 dynamic: clean $(ALL_TARGETS)
 	@echo "[INFO]: Build DINÂMICO concluído."
 
-static: CURRENT_USB = $(link_static_usb)
-static: CURRENT_TUI = $(link_static_tui)
 static: clean $(ALL_TARGETS)
 	@echo "[INFO]: Build ESTÁTICO concluído."
 
@@ -136,15 +138,15 @@ $(LIB_ESP_A): $(DIR_LIB)/libesp32.o
 
 $(TARGET_DS4): $(DIR_CLI)/ttds4.c $(LIB_DS4_A)
 	@echo "[LD]  $@"
-	$(CC) $(CFLAGS_COMMON) $(CFLAGS_USB) $(INCLUDES) -o $@ $< $(LIB_DS4_A) $(CURRENT_USB)
+	$(CC) $(CFLAGS_COMMON) $(SELECTED_LDFLAGS) $(CFLAGS_USB) $(INCLUDES) -o $@ $< $(LIB_DS4_A) $(SELECTED_USB_LIBS)
 
 $(TARGET_ESP): $(DIR_CLI)/ttesp32.c $(LIB_ESP_A)
 	@echo "[LD]  $@"
-	$(CC) $(CFLAGS_COMMON) $(INCLUDES) -o $@ $< $(LIB_ESP_A)
+	$(CC) $(CFLAGS_COMMON) $(SELECTED_LDFLAGS) $(INCLUDES) -o $@ $< $(LIB_ESP_A)
 
 $(TARGET_TUI): $(DIR_TUI)/ttcc.c $(LIB_DS4_A) $(LIB_ESP_A)
 	@echo "[LD]  $@"
-	$(CC) $(CFLAGS_COMMON) $(CFLAGS_USB) $(CFLAGS_TUI) $(INCLUDES) -o $@ $< $(LIB_DS4_A) $(LIB_ESP_A) $(CURRENT_USB) $(CURRENT_TUI)
+	$(CC) $(CFLAGS_COMMON) $(SELECTED_LDFLAGS) $(CFLAGS_USB) $(CFLAGS_TUI) $(INCLUDES) -o $@ $< $(LIB_DS4_A) $(LIB_ESP_A) $(SELECTED_USB_LIBS) $(SELECTED_TUI_LIBS)
 
 clean:
 	@echo "[CLEAN] Removendo artefatos..."
