@@ -7,7 +7,7 @@
 #include <ncurses.h>
 #include "platform.h"
 
-#if defined(PLATFORM_WINDOWS)
+#ifdef PLATFORM_WINDOWS
 #include <windows.h>
 #define usleep(x) Sleep((x)/1000)
 #else

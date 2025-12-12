@@ -7,7 +7,7 @@
 #include <time.h>
 #include <libserialport.h>
 
-#if PLATFORM_WINDOWS
+#ifdef PLATFORM_WINDOWS
 #include <windows.h>
 #endif
 
