@@ -112,14 +112,20 @@ jobs:
         run: |
           echo "Identificando dependências DLL..."
           for exe in ttds4.exe ttesp32.exe ttcc.exe; do
-             echo "Processando $exe..."
-             deps=$(ldd $exe | grep -iv "/c/Windows" | grep " => " | awk '{print $3}')
-             for dep in $deps; do
-               if [ -f "$dep" ]; then
+            # 1. Verifica se o executável existe antes de tentar o ldd
+            if [ ! -f "$exe" ]; then
+              echo "Aviso: $exe não encontrado, pulando."
+              continue
+            fi
+
+            echo "Processando $exe..."
+            deps=$(ldd $exe | grep -iv "/c/Windows" | grep " => " | awk '{print $3}' || true)
+            for dep in $deps; do
+              if [ -f "$dep" ]; then
                   cp -u "$dep" .
                   echo "  -> Bundled: $dep"
-               fi
-             done
+              fi
+            done
           done
 
       - name: Criar ZIP (Windows)
