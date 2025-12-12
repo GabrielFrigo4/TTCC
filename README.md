@@ -141,9 +141,14 @@
  * **Feedback Visual:** Indicação de status por cores (Azul, Magenta, Verde, Vermelho).
  * **Automático:** Detecta e converte os endereços MAC automaticamente.
 
- **Executar:**
+ **Executar (Básico):**
  ```bash
  ttcc
+ ```
+
+ **Executar (Avançado):**
+ ```bash
+ sudo ttcc
  ```
 
  > **⚠️ Importante:** Para visualizar os ícones corretamente (🎮, , ), seu terminal deve estar configurado com uma **[Nerd Font](https://www.nerdfonts.com/)** (ex: *JetBrainsMono Nerd Font*, *FiraCode Nerd Font*). Caso contrário, você verá retângulos ou interrogações.
