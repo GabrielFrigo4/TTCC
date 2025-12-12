@@ -103,13 +103,25 @@ jobs:
             git
             zip
 
-      - name: Compilar (Static Mode)
+      - name: Compilar (Dynamic Mode)
         shell: msys2 {0}
-        run: make static
+        run: make dynamic
+
+      - name: Coletar DLLs (Dependências)
+        shell: msys2 {0}
+        run: |
+          echo "Identificando dependências DLL..."
+          for exe in ttds4.exe ttesp32.exe ttcc.exe; do
+             deps=$(ldd $exe | grep "/ucrt64/" | awk '{print $3}')
+             for dep in $deps; do
+               cp -u "$dep" .
+               echo "Bundled: $dep"
+             done
+          done
 
       - name: Criar ZIP (Windows)
         shell: msys2 {0}
-        run: zip -r windows.zip ttds4.exe ttesp32.exe ttcc.exe
+        run: zip -r windows.zip *.exe *.dll
 
       - name: Upload Artifacts (Windows)
         uses: actions/upload-artifact@v4
