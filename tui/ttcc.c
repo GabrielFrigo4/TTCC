@@ -249,7 +249,7 @@ void render(AppState *s) {
 	int cx = w / 2;
 
 	attron(COLOR_PAIR(CP_ACCENT) | A_BOLD);
-	mvprintw(2, cx - 8, "%s  PAIR TOOL %s", ICON_GAMEPAD, ICON_CHIP);
+	mvprintw(2, cx - 20, "%s  Tamandutech Core Collections (TTCC) %s", ICON_GAMEPAD, ICON_CHIP);
 	attroff(COLOR_PAIR(CP_ACCENT) | A_BOLD);
 
 	draw_panel(cx - 28, 5, 26, 5, "DualShock 4", s->ds4_mac, s->ds4_ok, false);
