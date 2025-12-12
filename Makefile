@@ -4,7 +4,6 @@
 
 CC = gcc
 AR = ar
-
 CFLAGS_BASE = -std=c23 -Wall -Wextra -O2
 
 DIR_LIB = lib
@@ -20,7 +19,7 @@ EXE_EXT =
 # 1. WINDOWS (MSYS2)
 ifneq (,$(findstring MINGW,$(UNAME_S))$(findstring MSYS,$(UNAME_S))$(filter Windows_NT,$(OS)))
     EXE_EXT = .exe
-    CFLAGS_PLATFORM = -D_DEFAULT_SOURCE
+    CFLAGS_PLATFORM = -D_WIN32
 endif
 
 # 2. MACOS (Darwin)
