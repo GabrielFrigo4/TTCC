@@ -6,13 +6,12 @@
 #include <stdint.h>
 #include <time.h>
 #include <libserialport.h>
+#include "platform.h"
+#include "libesp32.h"
 
 #ifdef PLATFORM_WINDOWS
 #include <windows.h>
 #endif
-
-#include "libesp32.h"
-#include "platform.h"
 
 #define SLIP_BYTE_END           0xC0
 #define SLIP_BYTE_ESC           0xDB

@@ -6,6 +6,8 @@
 #include <locale.h>
 #include <ncurses.h>
 #include "platform.h"
+#include "libds4.h"
+#include "libesp32.h"
 
 #ifdef PLATFORM_WINDOWS
 #include <windows.h>
@@ -13,9 +15,6 @@
 #else
 #include <unistd.h>
 #endif
-
-#include "libds4.h"
-#include "libesp32.h"
 
 #define ICON_GAMEPAD    "\uf11b"
 #define ICON_CHIP       "\uf2db"
