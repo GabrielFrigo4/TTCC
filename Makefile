@@ -16,18 +16,15 @@ INCLUDES = -I$(DIR_CROSS) -I$(DIR_LIB)
 UNAME_S := $(shell uname -s)
 EXE_EXT =
 
-# 1. WINDOWS (MSYS2)
 ifneq (,$(findstring MINGW,$(UNAME_S))$(findstring MSYS,$(UNAME_S))$(filter Windows_NT,$(OS)))
     EXE_EXT = .exe
     CFLAGS_PLATFORM = -D_POSIX_C_SOURCE=202405L -D_DEFAULT_SOURCE
 endif
 
-# 2. MACOS (Darwin)
 ifeq ($(UNAME_S),Darwin)
     CFLAGS_PLATFORM = -D_POSIX_C_SOURCE=200809L -D_DARWIN_C_SOURCE
 endif
 
-# 3. LINUX (GNU)
 ifeq ($(UNAME_S),Linux)
     CFLAGS_PLATFORM = -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE
 endif
@@ -41,39 +38,53 @@ CFLAGS_COMMON = $(CFLAGS_BASE) $(CFLAGS_PLATFORM)
 PKG_USB = libusb-1.0
 CFLAGS_USB := $(shell pkg-config --cflags $(PKG_USB))
 
-LIBS_TUI = -lncurses
+PKG_TUI = ncurses
+CFLAGS_TUI := $(shell pkg-config --cflags $(PKG_TUI))
 
-# Macro Windows
 ifneq (,$(findstring MINGW,$(UNAME_S))$(findstring MSYS,$(UNAME_S))$(filter Windows_NT,$(OS)))
     define libs_usb_static_macro
         -Wl,-Bstatic $(shell pkg-config --static --libs-only-l $(PKG_USB)) \
         -Wl,-Bdynamic $(shell pkg-config --static --libs-only-other $(PKG_USB))
     endef
+    define libs_tui_static_macro
+        -Wl,-Bstatic $(shell pkg-config --static --libs-only-l $(PKG_TUI)) \
+        -Wl,-Bdynamic $(shell pkg-config --static --libs-only-other $(PKG_TUI))
+    endef
 endif
 
-# Macro MacOS
 ifeq ($(UNAME_S),Darwin)
     define libs_usb_static_macro
         $(shell pkg-config --variable=libdir $(PKG_USB))/libusb-1.0.a \
         $(shell pkg-config --static --libs-only-other $(PKG_USB)) \
         -lobjc -Wl,-framework,IOKit -Wl,-framework,CoreFoundation
     endef
+    define libs_tui_static_macro
+        $(shell pkg-config --variable=libdir $(PKG_TUI))/libncurses.a \
+        $(shell pkg-config --static --libs-only-other $(PKG_TUI))
+    endef
 endif
 
-# Macro Linux
 ifeq ($(UNAME_S),Linux)
     define libs_usb_static_macro
         $(shell pkg-config --variable=libdir $(PKG_USB))/libusb-1.0.a \
         $(filter-out -l$(PKG_USB), $(shell pkg-config --static --libs $(PKG_USB)))
+    endef
+    define libs_tui_static_macro
+        $(shell pkg-config --variable=libdir $(PKG_TUI))/libncurses.a \
+        $(shell pkg-config --variable=libdir $(PKG_TUI))/libtinfo.a \
+        $(shell pkg-config --static --libs-only-other $(PKG_TUI))
     endef
 endif
 
 LIBS_USB_DYN := $(shell pkg-config --libs $(PKG_USB))
 LIBS_USB_STAT := $(libs_usb_static_macro)
 
+LIBS_TUI_DYN := $(shell pkg-config --libs $(PKG_TUI))
+LIBS_TUI_STAT := $(libs_tui_static_macro)
+
 # ==========================================
 # 3. TARGETS
-# ==========================================
+# ========================================
 
 TARGET_DS4 = ttds4$(EXE_EXT)
 TARGET_ESP = ttesp32$(EXE_EXT)
@@ -88,16 +99,16 @@ ALL_TARGETS = $(TARGET_ESP) $(TARGET_DS4) $(TARGET_TUI)
 
 all: dynamic
 
-# Builds
 dynamic: LIBS_CURRENT_USB = $(LIBS_USB_DYN)
+dynamic: LIBS_CURRENT_TUI = $(LIBS_TUI_DYN)
 dynamic: clean $(ALL_TARGETS)
 	@echo "[INFO]: Build DINÂMICO concluído."
 
 static: LIBS_CURRENT_USB = $(LIBS_USB_STAT)
+static: LIBS_CURRENT_TUI = $(LIBS_TUI_STAT)
 static: clean $(ALL_TARGETS)
 	@echo "[INFO]: Build ESTÁTICO concluído."
 
-# 1. Compilar Objetos da Library
 $(DIR_LIB)/libds4.o: $(DIR_LIB)/libds4.c $(DIR_LIB)/libds4.h $(DIR_CROSS)/platform.h
 	@echo "[CC]  $@"
 	$(CC) $(CFLAGS_COMMON) $(CFLAGS_USB) $(INCLUDES) -c $< -o $@
@@ -106,7 +117,6 @@ $(DIR_LIB)/libesp32.o: $(DIR_LIB)/libesp32.c $(DIR_LIB)/libesp32.h $(DIR_CROSS)/
 	@echo "[CC]  $@"
 	$(CC) $(CFLAGS_COMMON) $(INCLUDES) -c $< -o $@
 
-# 2. Criar Archives LIB
 $(LIB_DS4_A): $(DIR_LIB)/libds4.o
 	@echo "[AR]  $@"
 	$(AR) rcs $@ $<
@@ -115,7 +125,6 @@ $(LIB_ESP_A): $(DIR_LIB)/libesp32.o
 	@echo "[AR]  $@"
 	$(AR) rcs $@ $<
 
-# 3. Linkar Executáveis CLI
 $(TARGET_DS4): $(DIR_CLI)/ttds4.c $(LIB_DS4_A)
 	@echo "[LD]  $@"
 	$(CC) $(CFLAGS_COMMON) $(CFLAGS_USB) $(INCLUDES) -o $@ $< $(LIB_DS4_A) $(LIBS_CURRENT_USB)
@@ -124,10 +133,9 @@ $(TARGET_ESP): $(DIR_CLI)/ttesp32.c $(LIB_ESP_A)
 	@echo "[LD]  $@"
 	$(CC) $(CFLAGS_COMMON) $(INCLUDES) -o $@ $< $(LIB_ESP_A)
 
-# 4. Linkar Executável TUI (Atualizado com LIBS_TUI)
 $(TARGET_TUI): $(DIR_TUI)/ttcc.c $(LIB_DS4_A) $(LIB_ESP_A)
 	@echo "[LD]  $@"
-	$(CC) $(CFLAGS_COMMON) $(CFLAGS_USB) $(INCLUDES) -o $@ $< $(LIB_DS4_A) $(LIB_ESP_A) $(LIBS_CURRENT_USB) $(LIBS_TUI)
+	$(CC) $(CFLAGS_COMMON) $(CFLAGS_USB) $(CFLAGS_TUI) $(INCLUDES) -o $@ $< $(LIB_DS4_A) $(LIB_ESP_A) $(LIBS_CURRENT_USB) $(LIBS_CURRENT_TUI)
 
 clean:
 	@echo "[CLEAN] Removendo binários e objetos..."
