@@ -1,7 +1,9 @@
 # Tamandutech Core Collections (TTCC)
 
 ## Downloads (Binários Pré-Compilados com Links Híbridos)
- Baixe o pacote completo (contém `ttesp32` e `ttds4`) para o seu sistema:
+ Baixe o pacote completo para o seu sistema:
+ * __CLI__: `ttesp32`, `ttds4`
+ * __TUI__: `ttcc`
 
  [![Baixar Windows][baixar_windows_icon]][baixar_windows_zip]
  [![Baixar MacOS][baixar_macos_icon]][baixar_macos_zip]
@@ -124,6 +126,21 @@
  ```bash
  sudo ttds4 -w AA:BB:CC:DD:EE:FF
  ```
+
+## TT-TUI
+ Interface gráfica de terminal (TUI) moderna que integra as funções de leitura e escrita em um único painel interativo.
+
+ **Funcionalidades:**
+ * **Interface Híbrida:** Suporte total a **Mouse** (Hover, Clique, Pressionar) e **Teclado** (Setas, Tab, Enter).
+ * **Feedback Visual:** Indicação de status por cores (Azul, Magenta, Verde, Vermelho).
+ * **Automático:** Detecta e converte os endereços MAC automaticamente.
+
+ **Executar:**
+ ```bash
+ ttcc
+ ```
+
+ > **⚠️ Importante:** Para visualizar os ícones corretamente (🎮, , ), seu terminal deve estar configurado com uma **[Nerd Font](https://www.nerdfonts.com/)** (ex: *JetBrainsMono Nerd Font*, *FiraCode Nerd Font*). Caso contrário, você verá retângulos ou interrogações.
 
 [baixar_windows_zip]: https://github.com/GabrielFrigo4/TTCC/releases/download/latest/windows.zip
 [baixar_macos_zip]: https://github.com/GabrielFrigo4/TTCC/releases/download/latest/macos.zip

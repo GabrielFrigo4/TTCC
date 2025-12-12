@@ -3,7 +3,15 @@
 # ==========================================
 
 CC = gcc
+AR = ar
 CFLAGS_COMMON = -std=c23 -Wall -Wextra -O2 -D_POSIX_C_SOURCE=202405L
+
+DIR_LIB = lib
+DIR_CLI = cli
+DIR_TUI = tui
+DIR_CROSS = cross
+
+INCLUDES = -I$(DIR_CROSS) -I$(DIR_LIB)
 
 UNAME_S := $(shell uname -s)
 EXE_EXT =
@@ -13,13 +21,12 @@ ifneq (,$(findstring MINGW,$(UNAME_S))$(findstring MSYS,$(UNAME_S))$(filter Wind
 endif
 
 # ==========================================
-# 2. DEFINIÇÃO DE LIBRARIAS (STATIC VS DYNAMIC)
+# 2. DEFINIÇÃO DE BIBLIOTECAS HÍBRIDAS
 # ==========================================
 
 PKG_USB = libusb-1.0
 CFLAGS_USB := $(shell pkg-config --cflags $(PKG_USB))
 
-# Windows (MSYS2) - Static
 ifneq (,$(findstring MINGW,$(UNAME_S))$(findstring MSYS,$(UNAME_S))$(filter Windows_NT,$(OS)))
     define libs_usb_static_macro
         -Wl,-Bstatic $(shell pkg-config --static --libs-only-l $(PKG_USB)) \
@@ -27,19 +34,18 @@ ifneq (,$(findstring MINGW,$(UNAME_S))$(findstring MSYS,$(UNAME_S))$(filter Wind
     endef
 endif
 
-# MacOS (XNU) - Static
 ifeq ($(UNAME_S),Darwin)
     define libs_usb_static_macro
         $(shell pkg-config --variable=libdir $(PKG_USB))/libusb-1.0.a \
-        $(shell pkg-config --static --libs-only-other $(PKG_USB))
+        $(shell pkg-config --static --libs-only-other $(PKG_USB)) \
+        -lobjc -Wl,-framework,IOKit -Wl,-framework,CoreFoundation
     endef
 endif
 
-# Linux (GNU) - Static
 ifeq ($(UNAME_S),Linux)
     define libs_usb_static_macro
-        -Wl,-Bstatic $(shell pkg-config --static --libs-only-l $(PKG_USB)) \
-        -Wl,-Bdynamic $(shell pkg-config --static --libs-only-other $(PKG_USB))
+        $(shell pkg-config --variable=libdir $(PKG_USB))/libusb-1.0.a \
+        $(filter-out -l$(PKG_USB), $(shell pkg-config --static --libs $(PKG_USB)))
     endef
 endif
 
@@ -50,40 +56,74 @@ LIBS_USB_STAT := $(libs_usb_static_macro)
 # 3. TARGETS
 # ==========================================
 
-TARGETS = ttesp32$(EXE_EXT) ttds4$(EXE_EXT)
-DEPS = platform.h
-PREFIX ?= /usr/local
-BINDIR = $(PREFIX)/bin
+TARGET_DS4 = ttds4$(EXE_EXT)
+TARGET_ESP = ttesp32$(EXE_EXT)
+TARGET_TUI = ttcc$(EXE_EXT)
+
+LIB_DS4_A = $(DIR_LIB)/libds4.a
+LIB_ESP_A = $(DIR_LIB)/libesp32.a
+
+ALL_TARGETS = $(TARGET_ESP) $(TARGET_DS4) $(TARGET_TUI)
 
 .PHONY: all dynamic static clean install uninstall
 
 all: dynamic
 
-dynamic: LIBS_CURRENT = $(LIBS_USB_DYN)
-dynamic: clean ttesp32$(EXE_EXT) ttds4$(EXE_EXT)
+# Builds
+dynamic: LIBS_CURRENT_USB = $(LIBS_USB_DYN)
+dynamic: $(ALL_TARGETS)
 	@echo "[INFO]: Build DINÂMICO concluído."
 
-static: LIBS_CURRENT = $(LIBS_USB_STAT)
-static: clean ttesp32$(EXE_EXT) ttds4$(EXE_EXT)
+static: LIBS_CURRENT_USB = $(LIBS_USB_STAT)
+static: $(ALL_TARGETS)
 	@echo "[INFO]: Build ESTÁTICO concluído."
 
-ttesp32$(EXE_EXT): ttesp32.c $(DEPS)
-	@echo "[INFO]: Compilando $@..."
-	$(CC) $(CFLAGS_COMMON) -o $@ $<
+# 1. Compilar Objetos da Library
+$(DIR_LIB)/libds4.o: $(DIR_LIB)/libds4.c $(DIR_LIB)/libds4.h $(DIR_CROSS)/platform.h
+	@echo "[CC]  $@"
+	$(CC) $(CFLAGS_COMMON) $(CFLAGS_USB) $(INCLUDES) -c $< -o $@
 
-ttds4$(EXE_EXT): ttds4.c $(DEPS)
-	@echo "[INFO]: Compilando $@..."
-	$(CC) $(CFLAGS_COMMON) $(CFLAGS_USB) -o $@ $< $(LIBS_CURRENT)
+$(DIR_LIB)/libesp32.o: $(DIR_LIB)/libesp32.c $(DIR_LIB)/libesp32.h $(DIR_CROSS)/platform.h
+	@echo "[CC]  $@"
+	$(CC) $(CFLAGS_COMMON) $(INCLUDES) -c $< -o $@
+
+# 2. Criar Archives LIB
+$(LIB_DS4_A): $(DIR_LIB)/libds4.o
+	@echo "[AR]  $@"
+	$(AR) rcs $@ $<
+
+$(LIB_ESP_A): $(DIR_LIB)/libesp32.o
+	@echo "[AR]  $@"
+	$(AR) rcs $@ $<
+
+# 3. Linkar Executáveis CLI
+$(TARGET_DS4): $(DIR_CLI)/ttds4.c $(LIB_DS4_A)
+	@echo "[LD]  $@"
+	$(CC) $(CFLAGS_COMMON) $(CFLAGS_USB) $(INCLUDES) -o $@ $< $(LIB_DS4_A) $(LIBS_CURRENT_USB)
+
+$(TARGET_ESP): $(DIR_CLI)/ttesp32.c $(LIB_ESP_A)
+	@echo "[LD]  $@"
+	$(CC) $(CFLAGS_COMMON) $(INCLUDES) -o $@ $< $(LIB_ESP_A)
+
+# 4. Linkar Executável TUI
+$(TARGET_TUI): $(DIR_TUI)/ttcc.c $(LIB_DS4_A) $(LIB_ESP_A)
+	@echo "[LD]  $@"
+	$(CC) $(CFLAGS_COMMON) $(CFLAGS_USB) $(INCLUDES) -o $@ $< $(LIB_DS4_A) $(LIB_ESP_A) $(LIBS_CURRENT_USB)
 
 clean:
-	@echo "[INFO]: Limpando os Binários $(TARGETS)..."
-	rm -f $(TARGETS)
+	@echo "[CLEAN] Removendo binários e objetos..."
+	rm -f $(ALL_TARGETS)
+	rm -f $(DIR_LIB)/*.a $(DIR_LIB)/*.o
 
 install:
-	@echo "[INFO]: Instalando em $(DESTDIR)$(BINDIR)..."
-	install -d $(DESTDIR)$(BINDIR)
-	install -m 755 $(TARGETS) $(DESTDIR)$(BINDIR)
+	@echo "[INSTALL] Copiando para $(DESTDIR)$(PREFIX)/bin..."
+	install -d $(DESTDIR)$(PREFIX)/bin
+	install -m 755 $(TARGET_DS4) $(DESTDIR)$(PREFIX)/bin
+	install -m 755 $(TARGET_ESP) $(DESTDIR)$(PREFIX)/bin
+	install -m 755 $(TARGET_TUI) $(DESTDIR)$(PREFIX)/bin
 
 uninstall:
-	@echo "[INFO]: Removendo de $(DESTDIR)$(BINDIR)..."
-	rm -f $(addprefix $(DESTDIR)$(BINDIR)/, $(TARGETS))
+	@echo "[UNINSTALL] Removendo..."
+	rm -f $(DESTDIR)$(PREFIX)/bin/$(TARGET_DS4)
+	rm -f $(DESTDIR)$(PREFIX)/bin/$(TARGET_ESP)
+	rm -f $(DESTDIR)$(PREFIX)/bin/$(TARGET_TUI)
