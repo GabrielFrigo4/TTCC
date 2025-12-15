@@ -110,7 +110,7 @@ jobs:
           install: >-
             mingw-w64-ucrt-x86_64-libusb
             mingw-w64-ucrt-x86_64-libserialport
-            mingw-w64-ucrt-x86_64-ncurses
+            mingw-w64-ucrt-x86_64-pdcurses
             mingw-w64-ucrt-x86_64-toolchain
             base-devel
             git
@@ -120,30 +120,12 @@ jobs:
         shell: msys2 {0}
         run: make static
 
-      - name: Coletar DLLs (Dependências)
-        shell: msys2 {0}
-        run: |
-          echo "Identificando dependências DLL..."
-          for exe in ttds4.exe ttesp32.exe ttcc.exe; do
-            if [ ! -f "$exe" ]; then
-              echo "Aviso: $exe não encontrado, pulando."
-              continue
-            fi
-            echo "Processando $exe..."
-            deps=$(ldd $exe | grep -iv "/c/Windows" | grep " => " | awk '{print $3}' || true)
-            for dep in $deps; do
-              base_name=$(basename "$dep")
-              if [ ! -f "$dep" ] || [ "$dep" -ef "./$base_name" ]; then
-                  continue
-              fi
-              cp -u "$dep" .
-              echo "  -> Bundled: $dep"
-            done
-          done
-
       - name: Criar ZIP (Windows)
         shell: msys2 {0}
-        run: zip -r windows.zip *.exe *.dll
+        run: |
+          mv *.exe *.dll win/
+          cd win
+          zip -r ../windows.zip .
 
       - name: Upload Artifacts (Windows)
         uses: actions/upload-artifact@v4

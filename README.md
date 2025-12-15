@@ -19,7 +19,7 @@
  ```bash
  pacman -S mingw-w64-ucrt-x86_64-libusb
  pacman -S mingw-w64-ucrt-x86_64-libserialport
- pacman -S mingw-w64-ucrt-x86_64-ncurses
+ pacman -S mingw-w64-ucrt-x86_64-pdcurses
  ```
 
  * **MacOS (XNU):** 
@@ -33,7 +33,7 @@
  ```bash
  sudo apt install libusb-1.0-0-dev
  sudo apt install libserialport-dev
- sudo apt install libncursesw5-dev
+ sudo apt install libncurses-dev
  ```
 
  * **Linux (Arch):** 

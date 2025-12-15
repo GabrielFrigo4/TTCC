@@ -1,0 +1,19 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CURRENT_USER\Software\PDCurses]
+
+; -----------------------------------------------------------------------------
+; EXPLICAÇÃO DA STRING DE CONFIGURAÇÃO DO PDCURSES
+; Formato: "LxC,S,X,Y,W;R,G,B,A:NomeDaFonte"
+;
+; 101x31 ....... Geometria: 100 Colunas de largura x 30 Linhas de altura
+; 12 ........... Tamanho da Fonte: 12pt (Aumente para 24 se usar Nerd Fonts)
+; 0,0 .......... Posição X,Y: 0,0 deixa o Windows decidir onde abrir (Cascata)
+; 0 ............ Estado da Janela: 0=Normal, 1=Maximizado, 2=Tela Cheia
+; ; ............ Separador
+; 20,200,60 .... Cor RGB Inicial: Texto Verde Matrix (R=20, G=200, B=60)
+; 800 .......... Atributos: Flag interna de background/transparência
+; : ............ Separador de Fonte
+; JetBrains... . Nome da Fonte: Deve ser o nome interno exato da fonte
+; -----------------------------------------------------------------------------
+"ttcc"="100x30,16,0,0,0;20,200,60,800:JetBrainsMono NF ExtraBold"

@@ -1,6 +1,35 @@
-# VS Code
+# ===========================
+# IDEs e Sistema
+# ===========================
 .vscode/
+.DS_Store
+Thumbs.db
 
-# Binaries
-ttmac
-ttpair
+# ===========================
+# Compilação (Intermediários)
+# ===========================
+*.o
+*.obj
+
+*.d
+
+*.dSYM/
+*.pdb
+
+# ===========================
+# Bibliotecas Estáticas
+# ===========================
+*.a
+*.lib
+
+# ===========================
+# Binários Finais
+# ===========================
+ttesp32
+ttds4
+ttcc
+
+*.exe
+*.dll
+
+*.out

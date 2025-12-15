@@ -4,30 +4,48 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <locale.h>
-#include <ncurses.h>
+
 #include "platform.h"
 #include "libds4.h"
 #include "libesp32.h"
 
 #ifdef PLATFORM_WINDOWS
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0A00
+#endif
+#include <pdcurses.h>
 #include <windows.h>
-#define usleep(x) Sleep((x)/1000)
+#include <dwmapi.h>
+#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
+#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#endif
+#define SYSTEM_SLEEP(ms) Sleep(ms)
 #else
+#include <ncurses.h>
 #include <unistd.h>
+#define SYSTEM_SLEEP(ms) usleep((ms) * 1000)
 #endif
 
-#define ICON_GAMEPAD    "\uf11b"
-#define ICON_CHIP       "\uf2db"
-#define ICON_USB        "\uf287"
-#define ICON_KEYBOARD   "\uf11c"
-#define ICON_SYNC       "\uf021"
-#define ICON_UPLOAD     "\uf093"
-#define ICON_EXIT       "\uf011"
-#define ICON_CHECK      "\uf00c"
-#define ICON_ERROR      "\uf071"
-#define ICON_MOUSE      "\uf245"
+#define ICON_GAMEPAD  "\uf11b "
+#define ICON_CHIP     "\uf2db "
+#define ICON_USB      "\uf287 "
+#define ICON_KEYBOARD "\uf11c "
+#define ICON_SYNC     "\uf021 "
+#define ICON_UPLOAD   "\uf093 "
+#define ICON_EXIT     "\uf011 "
+#define ICON_CHECK    "\uf00c "
+#define ICON_ERROR    "\uf071 "
+#define ICON_MOUSE    "\uf245"
 
-enum {
+#define FONT_PATH "font.ttf"
+#define WIN_COLS  99
+#define WIN_ROWS  30
+
+#ifndef KEY_ESC
+#define KEY_ESC 27
+#endif
+
+typedef enum {
 	CP_DEFAULT = 1,
 	CP_ACCENT,
 	CP_BTN_IDLE,
@@ -38,7 +56,7 @@ enum {
 	CP_STATUS_YELLOW,
 	CP_FIELD,
 	CP_EDIT
-};
+} ColorPair;
 
 typedef enum {
 	BTN_SCAN_DS4,
@@ -79,7 +97,7 @@ void set_status(AppState *s, const char *msg, int pair) {
 
 void render(AppState *s);
 
-void force_render(AppState *s) {
+void force_render_sync(AppState *s) {
 	s->dirty = true;
 	render(s);
 }
@@ -87,7 +105,7 @@ void force_render(AppState *s) {
 void action_scan_ds4(AppState *s) {
 	ds4_context_t *ctx = ds4_create_context();
 	if (!ctx) {
-		set_status(s, ICON_ERROR " Erro: DS4 desconectado.", CP_STATUS_RED);
+		set_status(s, ICON_ERROR "Erro: DS4 desconectado.", CP_STATUS_RED);
 		s->ds4_ok = false;
 		return;
 	}
@@ -95,23 +113,23 @@ void action_scan_ds4(AppState *s) {
 	if (ds4_get_mac(ctx, raw)) {
 		ds4_mac_to_string(raw, s->ds4_mac);
 		s->ds4_ok = true;
-		set_status(s, ICON_CHECK " Sucesso: DS4 Lido.", CP_STATUS_GREEN);
+		set_status(s, ICON_CHECK "Sucesso: DS4 Lido.", CP_STATUS_GREEN);
 	} else {
 		s->ds4_ok = false;
-		set_status(s, ICON_ERROR " Erro: Falha na leitura.", CP_STATUS_RED);
+		set_status(s, ICON_ERROR "Erro: Falha na leitura.", CP_STATUS_RED);
 	}
 	ds4_destroy_context(ctx);
 }
 
 void action_scan_esp(AppState *s) {
-	set_status(s, ICON_SYNC " Escaneando...", CP_STATUS_YELLOW);
-	force_render(s);
+	set_status(s, ICON_SYNC "Escaneando...", CP_STATUS_YELLOW);
+	force_render_sync(s);
 	if (esp32_find_any_mac(s->esp_mac, sizeof(s->esp_mac))) {
 		s->esp_ok = true;
-		set_status(s, ICON_CHECK " Sucesso: ESP32 Encontrado.", CP_STATUS_GREEN);
+		set_status(s, ICON_CHECK "Sucesso: ESP32 Encontrado.", CP_STATUS_GREEN);
 	} else {
 		s->esp_ok = false;
-		set_status(s, ICON_ERROR " Erro: Nenhum ESP32.", CP_STATUS_RED);
+		set_status(s, ICON_ERROR "Erro: Nenhum ESP32.", CP_STATUS_RED);
 	}
 }
 
@@ -124,17 +142,17 @@ void action_manual_input(AppState *s) {
 
 void action_pair(AppState *s) {
 	if (!s->esp_ok) {
-		set_status(s, ICON_ERROR " Origem inválida.", CP_STATUS_RED);
+		set_status(s, ICON_ERROR "Origem inválida.", CP_STATUS_RED);
 		return;
 	}
 	ds4_context_t *ctx = ds4_create_context();
 	if (!ctx) {
-		set_status(s, ICON_USB "  Conecte o DS4.", CP_STATUS_RED);
+		set_status(s, ICON_USB "Conecte o DS4.", CP_STATUS_RED);
 		return;
 	}
 	uint8_t target[6];
 	if (!ds4_string_to_mac(s->esp_mac, target)) {
-		set_status(s, ICON_ERROR " Formato MAC inválido.", CP_STATUS_RED);
+		set_status(s, ICON_ERROR "Formato MAC inválido.", CP_STATUS_RED);
 		ds4_destroy_context(ctx);
 		return;
 	}
@@ -142,9 +160,9 @@ void action_pair(AppState *s) {
 		ds4_get_mac(ctx, target);
 		ds4_mac_to_string(target, s->ds4_mac);
 		s->ds4_ok = true;
-		set_status(s, ICON_CHECK " SUCESSO! Pareado.", CP_STATUS_GREEN);
+		set_status(s, ICON_CHECK "SUCESSO! Pareado.", CP_STATUS_GREEN);
 	} else {
-		set_status(s, ICON_ERROR " Erro na gravação.", CP_STATUS_RED);
+		set_status(s, ICON_ERROR "Erro na gravação.", CP_STATUS_RED);
 	}
 	ds4_destroy_context(ctx);
 }
@@ -170,7 +188,6 @@ void init_state(AppState *s) {
 	s->pressed_btn_idx = -1;
 	s->is_editing = false;
 	s->dirty = true;
-
 	s->last_col_btn = BTN_PAIR;
 
 	int y = 13;
@@ -195,80 +212,81 @@ void update_layout(AppState *s) {
 void draw_rect(int x, int y, int w, int h) {
 	for (int i = 0; i < h; i++) {
 		for (int j = 0; j < w; j++) {
-			mvaddch(y + i, x + j, ' ');
+			mvwaddch(stdscr, y + i, x + j, ' ');
 		}
 	}
 }
 
 void draw_outline(int x, int y, int w, int h) {
-	mvaddch(y, x, ACS_ULCORNER);
-	mvaddch(y, x + w - 1, ACS_URCORNER);
-	mvaddch(y + h - 1, x, ACS_LLCORNER);
-	mvaddch(y + h - 1, x + w - 1, ACS_LRCORNER);
+	mvwaddch(stdscr, y, x, ACS_ULCORNER);
+	mvwaddch(stdscr, y, x + w - 1, ACS_URCORNER);
+	mvwaddch(stdscr, y + h - 1, x, ACS_LLCORNER);
+	mvwaddch(stdscr, y + h - 1, x + w - 1, ACS_LRCORNER);
 	for (int i = 1; i < w - 1; i++) {
-		mvaddch(y, x + i, ACS_HLINE);
-		mvaddch(y + h - 1, x + i, ACS_HLINE);
+		mvwaddch(stdscr, y, x + i, ACS_HLINE);
+		mvwaddch(stdscr, y + h - 1, x + i, ACS_HLINE);
 	}
 	for (int i = 1; i < h - 1; i++) {
-		mvaddch(y + i, x, ACS_VLINE);
-		mvaddch(y + i, x + w - 1, ACS_VLINE);
+		mvwaddch(stdscr, y + i, x, ACS_VLINE);
+		mvwaddch(stdscr, y + i, x + w - 1, ACS_VLINE);
 	}
 }
 
 void draw_button(Button *b, bool selected, bool pressed) {
 	int pair = pressed ? CP_BTN_PRESS : (selected ? CP_BTN_HOVER : CP_BTN_IDLE);
 	if (!pressed) {
-		attron(COLOR_PAIR(CP_DEFAULT));
+		wattron(stdscr, COLOR_PAIR(CP_DEFAULT));
 		draw_rect(b->x + 1, b->y + 1, b->w, b->h);
 	}
-	attron(COLOR_PAIR(pair));
+	wattron(stdscr, COLOR_PAIR(pair));
 	draw_rect(b->x, b->y, b->w, b->h);
 	if (selected || pressed) {
-		attron(A_BOLD);
+		wattron(stdscr, A_BOLD);
 		draw_outline(b->x, b->y, b->w, b->h);
 	}
-	int tx = b->x + (b->w - (strlen(b->label) + 2)) / 2;
+	int tx = b->x + (b->w - (strlen(b->label) + strlen(b->icon) - 1)) / 2;
 	int ty = b->y + (b->h / 2);
-	mvprintw(ty, tx, "%s %s", b->icon, b->label);
-	attroff(COLOR_PAIR(pair) | A_BOLD);
+	mvwprintw(stdscr, ty, tx, "%s %s", b->icon, b->label);
+	wattroff(stdscr, COLOR_PAIR(pair) | A_BOLD);
 }
 
 void draw_panel(int x, int y, int w, int h, const char *title, const char *mac, bool active, bool editing) {
 	int pair = editing ? CP_EDIT : (active ? CP_STATUS_GREEN : CP_DEFAULT);
-	attron(COLOR_PAIR(pair));
+	wattron(stdscr, COLOR_PAIR(pair));
 	draw_outline(x, y, w, h);
-	mvprintw(y, x + 2, " %s ", title);
-	attroff(COLOR_PAIR(pair));
+	mvwprintw(stdscr, y, x + 2, " %s ", title);
+	wattroff(stdscr, COLOR_PAIR(pair));
 	int mac_pair = editing ? CP_EDIT : CP_FIELD;
-	attron(COLOR_PAIR(mac_pair) | A_BOLD);
-	mvprintw(y + 2, x + (w - 17) / 2, "%s%s", mac, editing ? "_" : "");
-	attroff(COLOR_PAIR(mac_pair) | A_BOLD);
+	wattron(stdscr, COLOR_PAIR(mac_pair) | A_BOLD);
+	mvwprintw(stdscr, y + 2, x + (w - 17) / 2, "%s%s", mac, editing ? "_" : "");
+	wattroff(stdscr, COLOR_PAIR(mac_pair) | A_BOLD);
 }
 
 void render(AppState *s) {
 	if (!s->dirty) return;
-	erase();
+
+	werase(stdscr);
 	update_layout(s);
 	int w = getmaxx(stdscr);
 	int h = getmaxy(stdscr);
 	int cx = w / 2;
 
-	attron(COLOR_PAIR(CP_ACCENT) | A_BOLD);
-	mvprintw(2, cx - 20, "%s  Tamandutech Core Collections (TTCC) %s", ICON_GAMEPAD, ICON_CHIP);
-	attroff(COLOR_PAIR(CP_ACCENT) | A_BOLD);
+	wattron(stdscr, COLOR_PAIR(CP_ACCENT) | A_BOLD);
+	mvwprintw(stdscr, 2, cx - 20, "%s Tamandutech Core Collections (TTCC) %s", ICON_GAMEPAD, ICON_CHIP);
+	wattroff(stdscr, COLOR_PAIR(CP_ACCENT) | A_BOLD);
 
 	draw_panel(cx - 28, 5, 26, 5, "DualShock 4", s->ds4_mac, s->ds4_ok, false);
 	draw_panel(cx + 2, 5, 26, 5, "ESP32 Device", s->esp_mac, s->esp_ok, s->is_editing);
-	mvprintw(7, cx - 1, "\uf060");
+	mvwprintw(stdscr, 7, cx - 1, "\uf060");
 
 	for (int i = 0; i < BTN_COUNT; i++) {
 		draw_button(&s->buttons[i], i == s->selected_idx, i == s->pressed_btn_idx);
 	}
 
-	attron(COLOR_PAIR(s->status_pair) | A_BOLD);
+	wattron(stdscr, COLOR_PAIR(s->status_pair) | A_BOLD);
 	mvhline(h - 2, 0, ' ', w);
-	mvprintw(h - 2, 2, "%s", s->status);
-	attroff(COLOR_PAIR(s->status_pair) | A_BOLD);
+	mvwprintw(stdscr, h - 2, 2, "%s", s->status);
+	wattroff(stdscr, COLOR_PAIR(s->status_pair) | A_BOLD);
 
 	char help[128];
 	int x_pos;
@@ -279,10 +297,12 @@ void render(AppState *s) {
 		snprintf(help, sizeof(help), "%s Click/Enter: Select | %s Quit", ICON_MOUSE, ICON_EXIT);
 		x_pos = w - strlen(help) + 2;
 	}
-	attron(COLOR_PAIR(CP_DEFAULT));
-	mvprintw(h - 2, x_pos, "%s", help);
-	attroff(COLOR_PAIR(CP_DEFAULT));
-	refresh();
+	wattron(stdscr, COLOR_PAIR(CP_DEFAULT));
+	mvwprintw(stdscr, h - 2, x_pos, "%s", help);
+	wattroff(stdscr, COLOR_PAIR(CP_DEFAULT));
+
+	wnoutrefresh(stdscr);
+	doupdate();
 	s->dirty = false;
 }
 
@@ -296,7 +316,7 @@ void handle_text(AppState *s, int ch) {
 		} else {
 			set_status(s, "Formato Invalido (AA:BB:...)", CP_STATUS_RED);
 		}
-	} else if (ch == 27) {
+	} else if (ch == KEY_ESC) {
 		s->is_editing = false;
 		strcpy(s->esp_mac, "--:--:--:--:--:--");
 		set_status(s, "Cancelado.", CP_DEFAULT);
@@ -321,43 +341,31 @@ void handle_nav(AppState *s, int ch) {
 	s->pressed_btn_idx = -1;
 	int old_idx = s->selected_idx;
 	switch (ch) {
-		case 27: case 'q': s->running = false; break;
-
 		case KEY_DOWN: case '\t':
-			if (s->selected_idx == BTN_SCAN_DS4) {
-				s->selected_idx = BTN_PAIR;
-			} else if (s->selected_idx == BTN_SCAN_ESP) {
-				s->selected_idx = BTN_MANUAL;
-			} else if (s->selected_idx == BTN_PAIR || s->selected_idx == BTN_MANUAL) {
+			if (s->selected_idx == BTN_SCAN_DS4) s->selected_idx = BTN_PAIR;
+			else if (s->selected_idx == BTN_SCAN_ESP) s->selected_idx = BTN_MANUAL;
+			else if (s->selected_idx == BTN_PAIR || s->selected_idx == BTN_MANUAL) {
 				s->last_col_btn = s->selected_idx;
 				s->selected_idx = BTN_EXIT;
 			}
 			break;
-
 		case KEY_UP:
-			if (s->selected_idx == BTN_EXIT) {
-				s->selected_idx = s->last_col_btn;
-			} else if (s->selected_idx == BTN_PAIR) {
-				s->selected_idx = BTN_SCAN_DS4;
-			} else if (s->selected_idx == BTN_MANUAL) {
-				s->selected_idx = BTN_SCAN_ESP;
-			}
+			if (s->selected_idx == BTN_EXIT) s->selected_idx = s->last_col_btn;
+			else if (s->selected_idx == BTN_PAIR) s->selected_idx = BTN_SCAN_DS4;
+			else if (s->selected_idx == BTN_MANUAL) s->selected_idx = BTN_SCAN_ESP;
 			break;
-
 		case KEY_RIGHT:
 			if (s->selected_idx == BTN_SCAN_DS4) s->selected_idx = BTN_SCAN_ESP;
 			else if (s->selected_idx == BTN_PAIR) s->selected_idx = BTN_MANUAL;
 			break;
-
 		case KEY_LEFT:
 			if (s->selected_idx == BTN_SCAN_ESP) s->selected_idx = BTN_SCAN_DS4;
 			else if (s->selected_idx == BTN_MANUAL) s->selected_idx = BTN_PAIR;
 			break;
-
 		case '\n': case KEY_ENTER: case ' ':
 			s->pressed_btn_idx = s->selected_idx;
-			force_render(s);
-			usleep(100000);
+			force_render_sync(s);
+			SYSTEM_SLEEP(100);
 			s->pressed_btn_idx = -1;
 			trigger_action(s, s->selected_idx);
 			break;
@@ -375,7 +383,11 @@ int get_hovered_button(AppState *s, int x, int y) {
 
 void handle_mouse(AppState *s) {
 	MEVENT event;
+#ifdef PLATFORM_WINDOWS
+	if (nc_getmouse(&event) != OK) return;
+#else
 	if (getmouse(&event) != OK) return;
+#endif
 
 	int hovered = get_hovered_button(s, event.x, event.y);
 	if (hovered != -1 && s->selected_idx != hovered) {
@@ -391,11 +403,11 @@ void handle_mouse(AppState *s) {
 			s->pressed_btn_idx = hovered;
 			s->dirty = true;
 		}
-	} else if (event.bstate & (BUTTON1_RELEASED | BUTTON1_CLICKED)) {
+	} else if (event.bstate & BUTTON1_RELEASED) {
 		if (s->pressed_btn_idx != -1) {
 			if (s->pressed_btn_idx == hovered) {
 				s->pressed_btn_idx = -1;
-				force_render(s);
+				force_render_sync(s);
 				trigger_action(s, hovered);
 			} else {
 				s->pressed_btn_idx = -1;
@@ -405,56 +417,195 @@ void handle_mouse(AppState *s) {
 	}
 }
 
-void setup_ncurses() {
+void load_custom_font() {
 #ifdef PLATFORM_WINDOWS
-	SetConsoleOutputCP(65001);
+	AddFontResourceExA(FONT_PATH, FR_PRIVATE | FR_NOT_ENUM, 0);
 #endif
+}
 
-	setlocale(LC_ALL, "");
-	initscr();
-	cbreak();
-	noecho();
-	keypad(stdscr, TRUE);
-	curs_set(0);
-	set_escdelay(25);
+void unload_custom_font() {
+#ifdef PLATFORM_WINDOWS
+	RemoveFontResourceExA(FONT_PATH, FR_PRIVATE | FR_NOT_ENUM, 0);
+#endif
+}
 
-	mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
-	mouseinterval(0);
-	printf("\033[?1003h\n");
-
+void configure_terminal_colors() {
 	start_color();
 	use_default_colors();
-	init_pair(CP_DEFAULT, COLOR_WHITE, -1);
-	init_pair(CP_ACCENT, COLOR_CYAN, -1);
+	if (can_change_color()) {
+		init_color(COLOR_BLACK, 125, 125, 125);
+	}
+	init_pair(CP_DEFAULT, COLOR_WHITE, COLOR_BLACK);
+	init_pair(CP_ACCENT, COLOR_CYAN, COLOR_BLACK);
 	init_pair(CP_BTN_IDLE, COLOR_WHITE, COLOR_BLUE);
 	init_pair(CP_BTN_HOVER, COLOR_WHITE, COLOR_MAGENTA);
 	init_pair(CP_BTN_PRESS, COLOR_WHITE, COLOR_GREEN);
-	init_pair(CP_STATUS_RED, COLOR_RED, -1);
-	init_pair(CP_STATUS_GREEN, COLOR_GREEN, -1);
-	init_pair(CP_STATUS_YELLOW, COLOR_YELLOW, -1);
-	init_pair(CP_FIELD, COLOR_CYAN, -1);
-	init_pair(CP_EDIT, COLOR_YELLOW, -1);
+	init_pair(CP_STATUS_RED, COLOR_RED, COLOR_BLACK);
+	init_pair(CP_STATUS_GREEN, COLOR_GREEN, COLOR_BLACK);
+	init_pair(CP_STATUS_YELLOW, COLOR_YELLOW, COLOR_BLACK);
+	init_pair(CP_FIELD, COLOR_CYAN, COLOR_BLACK);
+	init_pair(CP_EDIT, COLOR_YELLOW, COLOR_BLACK);
 }
 
-int main(void) {
-	setup_ncurses();
-	AppState state;
-	init_state(&state);
-	while (state.running) {
-		render(&state);
-		int ch = getch();
-		if (ch == KEY_RESIZE) {
-			erase();
-			state.dirty = true;
-		} else if (ch == KEY_MOUSE) {
-			handle_mouse(&state);
-		} else if (state.is_editing) {
-			handle_text(&state, ch);
-		} else if (ch != ERR) {
-			handle_nav(&state, ch);
+void configure_terminal() {
+	setlocale(LC_ALL, "");
+	initscr();
+
+#ifdef PLATFORM_WINDOWS
+	resize_term(WIN_ROWS, WIN_COLS);
+#else
+	resize_term(0, 0);
+#endif
+
+	cbreak();
+	noecho();
+	nodelay(stdscr, TRUE);
+	keypad(stdscr, TRUE);
+	curs_set(0);
+
+	mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
+	mouseinterval(0);
+
+#ifndef PLATFORM_WINDOWS
+	set_escdelay(64);
+	printf("\033[?1003h\n");
+	fflush(stdout);
+#endif
+
+	configure_terminal_colors();
+	bkgd(COLOR_PAIR(CP_DEFAULT));
+}
+
+void handle_escape_key(AppState *s) {
+#ifdef PLATFORM_WINDOWS
+	if (s->is_editing) {
+		s->is_editing = false;
+		strcpy(s->esp_mac, "--:--:--:--:--:--");
+		set_status(s, "Cancelado.", CP_DEFAULT);
+	} else {
+		s->running = false;
+	}
+#else
+	s->running = false;
+#endif
+}
+
+void process_input(AppState *s, int ch) {
+	if (ch == KEY_MOUSE) {
+		handle_mouse(s);
+	} else if (ch == KEY_ESC) {
+		handle_escape_key(s);
+	} else if (s->is_editing) {
+		handle_text(s, ch);
+	} else {
+		handle_nav(s, ch);
+	}
+}
+
+#ifdef PLATFORM_WINDOWS
+void windows_apply_kiosk_mode() {
+	PDC_set_title("Tamandutech Core Collections (TTCC)");
+	HWND hwnd = GetActiveWindow();
+	if (hwnd) {
+		SetMenu(hwnd, NULL);
+		LONG lStyle = GetWindowLong(hwnd, GWL_STYLE);
+		lStyle |= WS_CAPTION;
+		lStyle &= ~WS_SYSMENU;
+		lStyle &= ~(WS_THICKFRAME | WS_MAXIMIZEBOX | WS_MINIMIZEBOX);
+		SetWindowLong(hwnd, GWL_STYLE, lStyle);
+		SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+					 SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+	}
+	HANDLE hInput = GetStdHandle(STD_INPUT_HANDLE);
+	if (hInput != INVALID_HANDLE_VALUE) {
+		DWORD mode;
+		if (GetConsoleMode(hInput, &mode)) {
+			mode &= ~ENABLE_QUICK_EDIT_MODE;
+			mode |= ENABLE_EXTENDED_FLAGS;
+			mode |= ENABLE_MOUSE_INPUT;
+			SetConsoleMode(hInput, mode);
 		}
 	}
+}
+
+bool windows_check_dark_mode() {
+	HKEY key;
+	DWORD value = 1;
+	DWORD size = sizeof(value);
+	const char *path = "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize";
+
+	if (RegOpenKeyExA(HKEY_CURRENT_USER, path, 0, KEY_READ, &key) == ERROR_SUCCESS) {
+		RegQueryValueExA(key, "AppsUseLightTheme", NULL, NULL, (LPBYTE)&value, &size);
+		RegCloseKey(key);
+	}
+
+	return value == 0;
+}
+
+void window_apply_theme() {
+	HWND hwnd = GetActiveWindow();
+	BOOL use_dark = windows_check_dark_mode();
+
+	if (hwnd) {
+		DwmSetWindowAttribute(
+			hwnd,
+			DWMWA_USE_IMMERSIVE_DARK_MODE,
+			&use_dark,
+			sizeof(use_dark)
+		);
+
+		LONG_PTR style = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
+		SetWindowLongPtr(hwnd, GWL_EXSTYLE, style | WS_EX_LAYERED);
+		SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+					 SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+		SetWindowLongPtr(hwnd, GWL_EXSTYLE, style);
+		SetWindowPos(
+			hwnd,
+			NULL,
+			0, 0, 0, 0,
+			SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED
+		);
+	}
+}
+#endif
+
+int main(void) {
+	load_custom_font();
+	configure_terminal();
+
+#ifdef PLATFORM_WINDOWS
+	window_apply_theme();
+	windows_apply_kiosk_mode();
+#endif
+
+	AppState state;
+	init_state(&state);
+
+	while (state.running) {
+		int ch;
+		while ((ch = getch()) != ERR) {
+			if (ch == KEY_RESIZE) {
+#ifdef PLATFORM_WINDOWS
+				resize_term(0, 0);
+#endif
+				state.dirty = true;
+			} else {
+				process_input(&state, ch);
+			}
+		}
+
+		if (state.dirty) {
+			render(&state);
+		}
+
+		napms(1);
+	}
+
+#ifndef PLATFORM_WINDOWS
 	printf("\033[?1003l\n");
+#endif
 	endwin();
+	unload_custom_font();
+
 	return 0;
 }
