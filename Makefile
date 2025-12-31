@@ -200,7 +200,7 @@ clean:
 	rm -f $(DIR_LIB)/*.a $(DIR_LIB)/*.o
 	rm -f $(DIR_TUI)/*.res
 
-install:
+install: $(ALL_TARGETS)
 	@echo "[INSTALL] Instalando..."
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
 	install -m 755 $(TARGET_DS4) $(DESTDIR)$(PREFIX)/bin
