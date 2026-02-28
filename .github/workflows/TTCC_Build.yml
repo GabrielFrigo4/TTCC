@@ -169,13 +169,6 @@ jobs:
         run: sleep 4
 
       - name: Formatar Data do Commit
-        run: |
-          export TZ="America/Sao_Paulo"
-          RAW_DATE="${{ github.event.head_commit.timestamp }}"
-          FORMATTED_DATE=$(date -d "$RAW_DATE" +'%d/%m/%Y %H:%M')
-          echo "DATA_FORMATADA=$FORMATTED_DATE" >> $GITHUB_ENV
-
-      - name: Formatar Data do Commit
         id: date_step
         run: |
           export TZ="America/Sao_Paulo"
