@@ -8,7 +8,7 @@
 
 typedef struct ds4_context ds4_context_t;
 
-ds4_context_t* ds4_create_context(void);
+ds4_context_t *ds4_create_context(void);
 void ds4_destroy_context(ds4_context_t *ctx);
 
 bool ds4_get_mac(ds4_context_t *ctx, uint8_t *mac_out);
@@ -19,5 +19,7 @@ bool ds4_string_to_mac(const char *str_in, uint8_t *mac_out);
 
 void ds4_print_mac(const uint8_t *mac_raw);
 bool ds4_scan_mac(uint8_t *mac_out);
+
+void ds4_enable_debug(ds4_context_t *ctx);
 
 #endif

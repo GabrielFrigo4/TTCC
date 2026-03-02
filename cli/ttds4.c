@@ -2,77 +2,119 @@
 #include <string.h>
 #include "libds4.h"
 
-static void print_help(const char *prog_name) {
-	fprintf(stdout, "[HELP]: %s [-i] [-r | -w <mac>]\n", prog_name);
+static void print_help(const char *prog_name)
+{
+	fprintf(stdout, "[HELP]: %s [-i] [-d] [-r | -w <mac>]\n", prog_name);
+	fprintf(stdout, "        -i: Informativo (Verbose)\n");
+	fprintf(stdout, "        -d: Ativar Debug da porta USB\n");
 }
 
-int main(int argc, char* argv[]) {
-	if (argc < 2) {
+int main(int argc, char *argv[])
+{
+	if (argc < 2)
+	{
 		print_help(argv[0]);
 		return 1;
 	}
 
 	bool verbose = false;
+	bool debug_usb = false;
 	bool mode_read = false;
 	bool mode_write = false;
 	char *mac_arg = NULL;
 
-	for (int i = 1; i < argc; i++) {
-		if (strcmp(argv[i], "-i") == 0) {
+	for (int i = 1; i < argc; i++)
+	{
+		if (strcmp(argv[i], "-i") == 0)
+		{
 			verbose = true;
-		} else if (strcmp(argv[i], "-r") == 0) {
+		}
+		else if (strcmp(argv[i], "-d") == 0)
+		{
+			debug_usb = true;
+		}
+		else if (strcmp(argv[i], "-r") == 0)
+		{
 			mode_read = true;
-		} else if (strcmp(argv[i], "-w") == 0) {
+		}
+		else if (strcmp(argv[i], "-w") == 0)
+		{
 			mode_write = true;
-		} else if (strcmp(argv[i], "-h") == 0) {
+		}
+		else if (strcmp(argv[i], "-h") == 0)
+		{
 			print_help(argv[0]);
 			return 0;
-		} else {
+		}
+		else
+		{
 			mac_arg = argv[i];
 		}
 	}
 
-	if (mode_read == mode_write) {
+	if (mode_read == mode_write)
+	{
 		fprintf(stderr, "[ERRO]: Escolha -r OU -w\n");
 		return 1;
 	}
 
 	uint8_t mac_bytes[DS4_MAC_ADDR_LEN];
 
-	if (mode_write) {
+	if (mode_write)
+	{
 		bool ok = (mac_arg ? ds4_string_to_mac(mac_arg, mac_bytes) : ds4_scan_mac(mac_bytes));
 
-		if (!ok) {
+		if (!ok)
+		{
 			fprintf(stderr, "[ERRO]: MAC inválido.\n");
 			return 1;
 		}
 	}
 
 	ds4_context_t *ctx = ds4_create_context();
-	if (!ctx) {
+	if (!ctx)
+	{
 		fprintf(stderr, "[ERRO]: Falha ao conectar ao controle.\n");
 		return 1;
 	}
 
+	if (debug_usb)
+	{
+		ds4_enable_debug(ctx);
+		if (verbose)
+			fprintf(stdout, "[DEBUG] Logs USB ativados.\n");
+	}
+
 	int exit_code = 0;
 
-	if (mode_read) {
-		if (ds4_get_mac(ctx, mac_bytes)) {
-			if (verbose) {
+	if (mode_read)
+	{
+		if (ds4_get_mac(ctx, mac_bytes))
+		{
+			if (verbose)
+			{
 				fprintf(stdout, "[INFO]: MAC Lido: ");
 			}
 			ds4_print_mac(mac_bytes);
-		} else {
+		}
+		else
+		{
 			fprintf(stderr, "[ERRO]: Falha ao ler MAC.\n");
 			exit_code = 1;
 		}
-	} else {
-		if (ds4_set_mac(ctx, mac_bytes)) {
-			if (verbose) {
+	}
+	else
+	{
+		if (ds4_set_mac(ctx, mac_bytes))
+		{
+			if (verbose)
+			{
 				fprintf(stdout, "[INFO]: MAC Gravado: ");
 				ds4_print_mac(mac_bytes);
 			}
-		} else {
+		}
+		else
+		{
 			fprintf(stderr, "[ERRO]: Falha ao gravar MAC.\n");
 			exit_code = 1;
 		}

@@ -26,26 +26,27 @@
 #define SYSTEM_SLEEP(ms) usleep((ms) * 1000)
 #endif
 
-#define ICON_GAMEPAD  "\uf11b "
-#define ICON_CHIP     "\uf2db "
-#define ICON_USB      "\uf287 "
+#define ICON_GAMEPAD "\uf11b "
+#define ICON_CHIP "\uf2db "
+#define ICON_USB "\uf287 "
 #define ICON_KEYBOARD "\uf11c "
-#define ICON_SYNC     "\uf021 "
-#define ICON_UPLOAD   "\uf093 "
-#define ICON_EXIT     "\uf011 "
-#define ICON_CHECK    "\uf00c "
-#define ICON_ERROR    "\uf071 "
-#define ICON_MOUSE    "\uf245"
+#define ICON_SYNC "\uf021 "
+#define ICON_UPLOAD "\uf093 "
+#define ICON_EXIT "\uf011 "
+#define ICON_CHECK "\uf00c "
+#define ICON_ERROR "\uf071 "
+#define ICON_MOUSE "\uf245"
 
 #define FONT_PATH "font.ttf"
-#define WIN_COLS  99
-#define WIN_ROWS  30
+#define WIN_COLS 99
+#define WIN_ROWS 30
 
 #ifndef KEY_ESC
 #define KEY_ESC 27
 #endif
 
-typedef enum {
+typedef enum
+{
 	CP_DEFAULT = 1,
 	CP_ACCENT,
 	CP_BTN_IDLE,
@@ -58,7 +59,8 @@ typedef enum {
 	CP_EDIT
 } ColorPair;
 
-typedef enum {
+typedef enum
+{
 	BTN_SCAN_DS4,
 	BTN_SCAN_ESP,
 	BTN_MANUAL,
@@ -67,13 +69,15 @@ typedef enum {
 	BTN_COUNT
 } ButtonId;
 
-typedef struct {
+typedef struct
+{
 	int x, y, w, h;
 	const char *label;
 	const char *icon;
 } Button;
 
-typedef struct {
+typedef struct
+{
 	char ds4_mac[32];
 	char esp_mac[32];
 	char status[128];
@@ -89,7 +93,8 @@ typedef struct {
 	bool dirty;
 } AppState;
 
-void set_status(AppState *s, const char *msg, int pair) {
+void set_status(AppState *s, const char *msg, int pair)
+{
 	snprintf(s->status, sizeof(s->status), "%s", msg);
 	s->status_pair = pair;
 	s->dirty = true;
@@ -97,88 +102,119 @@ void set_status(AppState *s, const char *msg, int pair) {
 
 void render(AppState *s);
 
-void force_render_sync(AppState *s) {
+void force_render_sync(AppState *s)
+{
 	s->dirty = true;
 	render(s);
 }
 
-void action_scan_ds4(AppState *s) {
+void action_scan_ds4(AppState *s)
+{
 	ds4_context_t *ctx = ds4_create_context();
-	if (!ctx) {
+	if (!ctx)
+	{
 		set_status(s, ICON_ERROR "Erro: DS4 desconectado.", CP_STATUS_RED);
 		s->ds4_ok = false;
 		return;
 	}
 	uint8_t raw[6];
-	if (ds4_get_mac(ctx, raw)) {
+	if (ds4_get_mac(ctx, raw))
+	{
 		ds4_mac_to_string(raw, s->ds4_mac);
 		s->ds4_ok = true;
 		set_status(s, ICON_CHECK "Sucesso: DS4 Lido.", CP_STATUS_GREEN);
-	} else {
+	}
+	else
+	{
 		s->ds4_ok = false;
 		set_status(s, ICON_ERROR "Erro: Falha na leitura.", CP_STATUS_RED);
 	}
 	ds4_destroy_context(ctx);
 }
 
-void action_scan_esp(AppState *s) {
+void action_scan_esp(AppState *s)
+{
 	set_status(s, ICON_SYNC "Escaneando...", CP_STATUS_YELLOW);
 	force_render_sync(s);
-	if (esp32_find_any_mac(s->esp_mac, sizeof(s->esp_mac))) {
+	if (esp32_find_any_mac(s->esp_mac, sizeof(s->esp_mac)))
+	{
 		s->esp_ok = true;
 		set_status(s, ICON_CHECK "Sucesso: ESP32 Encontrado.", CP_STATUS_GREEN);
-	} else {
+	}
+	else
+	{
 		s->esp_ok = false;
 		set_status(s, ICON_ERROR "Erro: Nenhum ESP32.", CP_STATUS_RED);
 	}
 }
 
-void action_manual_input(AppState *s) {
+void action_manual_input(AppState *s)
+{
 	s->is_editing = true;
 	s->esp_ok = false;
 	memset(s->esp_mac, 0, sizeof(s->esp_mac));
 	set_status(s, "DIGITE O MAC. ENTER Confirma.", CP_STATUS_YELLOW);
 }
 
-void action_pair(AppState *s) {
-	if (!s->esp_ok) {
+void action_pair(AppState *s)
+{
+	if (!s->esp_ok)
+	{
 		set_status(s, ICON_ERROR "Origem inválida.", CP_STATUS_RED);
 		return;
 	}
 	ds4_context_t *ctx = ds4_create_context();
-	if (!ctx) {
+	if (!ctx)
+	{
 		set_status(s, ICON_USB "Conecte o DS4.", CP_STATUS_RED);
 		return;
 	}
 	uint8_t target[6];
-	if (!ds4_string_to_mac(s->esp_mac, target)) {
+	if (!ds4_string_to_mac(s->esp_mac, target))
+	{
 		set_status(s, ICON_ERROR "Formato MAC inválido.", CP_STATUS_RED);
 		ds4_destroy_context(ctx);
 		return;
 	}
-	if (ds4_set_mac(ctx, target)) {
-		ds4_get_mac(ctx, target);
+
+	if (ds4_set_mac(ctx, target))
+	{
 		ds4_mac_to_string(target, s->ds4_mac);
 		s->ds4_ok = true;
 		set_status(s, ICON_CHECK "SUCESSO! Pareado.", CP_STATUS_GREEN);
-	} else {
+	}
+	else
+	{
 		set_status(s, ICON_ERROR "Erro na gravação.", CP_STATUS_RED);
 	}
 	ds4_destroy_context(ctx);
 }
 
-void trigger_action(AppState *s, int btn_idx) {
-	switch (btn_idx) {
-		case BTN_SCAN_DS4: action_scan_ds4(s); break;
-		case BTN_SCAN_ESP: action_scan_esp(s); break;
-		case BTN_MANUAL:   action_manual_input(s); break;
-		case BTN_PAIR:     action_pair(s); break;
-		case BTN_EXIT:     s->running = false; break;
+void trigger_action(AppState *s, int btn_idx)
+{
+	switch (btn_idx)
+	{
+	case BTN_SCAN_DS4:
+		action_scan_ds4(s);
+		break;
+	case BTN_SCAN_ESP:
+		action_scan_esp(s);
+		break;
+	case BTN_MANUAL:
+		action_manual_input(s);
+		break;
+	case BTN_PAIR:
+		action_pair(s);
+		break;
+	case BTN_EXIT:
+		s->running = false;
+		break;
 	}
 	s->dirty = true;
 }
 
-void init_state(AppState *s) {
+void init_state(AppState *s)
+{
 	memset(s, 0, sizeof(AppState));
 	strcpy(s->ds4_mac, "--:--:--:--:--:--");
 	strcpy(s->esp_mac, "--:--:--:--:--:--");
@@ -195,52 +231,62 @@ void init_state(AppState *s) {
 
 	s->buttons[BTN_SCAN_DS4] = (Button){0, y, btn_w, 3, "Ler DS4 (USB)", ICON_GAMEPAD};
 	s->buttons[BTN_SCAN_ESP] = (Button){0, y, btn_w, 3, "Ler ESP32", ICON_CHIP};
-	s->buttons[BTN_PAIR]     = (Button){0, y + 4, btn_w, 3, "GRAVAR / PAREAR", ICON_UPLOAD};
-	s->buttons[BTN_MANUAL]   = (Button){0, y + 4, btn_w, 3, "Manual Input", ICON_KEYBOARD};
-	s->buttons[BTN_EXIT]     = (Button){0, y + 8, 20, 3, "Sair", ICON_EXIT};
+	s->buttons[BTN_PAIR] = (Button){0, y + 4, btn_w, 3, "GRAVAR / PAREAR", ICON_UPLOAD};
+	s->buttons[BTN_MANUAL] = (Button){0, y + 4, btn_w, 3, "Manual Input", ICON_KEYBOARD};
+	s->buttons[BTN_EXIT] = (Button){0, y + 8, 20, 3, "Sair", ICON_EXIT};
 }
 
-void update_layout(AppState *s) {
+void update_layout(AppState *s)
+{
 	int cx = getmaxx(stdscr) / 2;
 	s->buttons[BTN_SCAN_DS4].x = cx - s->buttons[BTN_SCAN_DS4].w - 1;
-	s->buttons[BTN_PAIR].x     = cx - s->buttons[BTN_PAIR].w - 1;
+	s->buttons[BTN_PAIR].x = cx - s->buttons[BTN_PAIR].w - 1;
 	s->buttons[BTN_SCAN_ESP].x = cx + 1;
-	s->buttons[BTN_MANUAL].x   = cx + 1;
-	s->buttons[BTN_EXIT].x     = cx - (s->buttons[BTN_EXIT].w / 2);
+	s->buttons[BTN_MANUAL].x = cx + 1;
+	s->buttons[BTN_EXIT].x = cx - (s->buttons[BTN_EXIT].w / 2);
 }
 
-void draw_rect(int x, int y, int w, int h) {
-	for (int i = 0; i < h; i++) {
-		for (int j = 0; j < w; j++) {
+void draw_rect(int x, int y, int w, int h)
+{
+	for (int i = 0; i < h; i++)
+	{
+		for (int j = 0; j < w; j++)
+		{
 			mvwaddch(stdscr, y + i, x + j, ' ');
 		}
 	}
 }
 
-void draw_outline(int x, int y, int w, int h) {
+void draw_outline(int x, int y, int w, int h)
+{
 	mvwaddch(stdscr, y, x, ACS_ULCORNER);
 	mvwaddch(stdscr, y, x + w - 1, ACS_URCORNER);
 	mvwaddch(stdscr, y + h - 1, x, ACS_LLCORNER);
 	mvwaddch(stdscr, y + h - 1, x + w - 1, ACS_LRCORNER);
-	for (int i = 1; i < w - 1; i++) {
+	for (int i = 1; i < w - 1; i++)
+	{
 		mvwaddch(stdscr, y, x + i, ACS_HLINE);
 		mvwaddch(stdscr, y + h - 1, x + i, ACS_HLINE);
 	}
-	for (int i = 1; i < h - 1; i++) {
+	for (int i = 1; i < h - 1; i++)
+	{
 		mvwaddch(stdscr, y + i, x, ACS_VLINE);
 		mvwaddch(stdscr, y + i, x + w - 1, ACS_VLINE);
 	}
 }
 
-void draw_button(Button *b, bool selected, bool pressed) {
+void draw_button(Button *b, bool selected, bool pressed)
+{
 	int pair = pressed ? CP_BTN_PRESS : (selected ? CP_BTN_HOVER : CP_BTN_IDLE);
-	if (!pressed) {
+	if (!pressed)
+	{
 		wattron(stdscr, COLOR_PAIR(CP_DEFAULT));
 		draw_rect(b->x + 1, b->y + 1, b->w, b->h);
 	}
 	wattron(stdscr, COLOR_PAIR(pair));
 	draw_rect(b->x, b->y, b->w, b->h);
-	if (selected || pressed) {
+	if (selected || pressed)
+	{
 		wattron(stdscr, A_BOLD);
 		draw_outline(b->x, b->y, b->w, b->h);
 	}
@@ -250,7 +296,8 @@ void draw_button(Button *b, bool selected, bool pressed) {
 	wattroff(stdscr, COLOR_PAIR(pair) | A_BOLD);
 }
 
-void draw_panel(int x, int y, int w, int h, const char *title, const char *mac, bool active, bool editing) {
+void draw_panel(int x, int y, int w, int h, const char *title, const char *mac, bool active, bool editing)
+{
 	int pair = editing ? CP_EDIT : (active ? CP_STATUS_GREEN : CP_DEFAULT);
 	wattron(stdscr, COLOR_PAIR(pair));
 	draw_outline(x, y, w, h);
@@ -262,8 +309,10 @@ void draw_panel(int x, int y, int w, int h, const char *title, const char *mac, 
 	wattroff(stdscr, COLOR_PAIR(mac_pair) | A_BOLD);
 }
 
-void render(AppState *s) {
-	if (!s->dirty) return;
+void render(AppState *s)
+{
+	if (!s->dirty)
+		return;
 
 	werase(stdscr);
 	update_layout(s);
@@ -279,7 +328,8 @@ void render(AppState *s) {
 	draw_panel(cx + 2, 5, 26, 5, "ESP32 Device", s->esp_mac, s->esp_ok, s->is_editing);
 	mvwprintw(stdscr, 7, cx - 1, "\uf060");
 
-	for (int i = 0; i < BTN_COUNT; i++) {
+	for (int i = 0; i < BTN_COUNT; i++)
+	{
 		draw_button(&s->buttons[i], i == s->selected_idx, i == s->pressed_btn_idx);
 	}
 
@@ -290,10 +340,13 @@ void render(AppState *s) {
 
 	char help[128];
 	int x_pos;
-	if (s->is_editing) {
+	if (s->is_editing)
+	{
 		snprintf(help, sizeof(help), "ENTER: Confirmar | ESC: Cancelar");
 		x_pos = w - strlen(help) - 2;
-	} else {
+	}
+	else
+	{
 		snprintf(help, sizeof(help), "%s Click/Enter: Select | %s Quit", ICON_MOUSE, ICON_EXIT);
 		x_pos = w - strlen(help) + 2;
 	}
@@ -306,30 +359,43 @@ void render(AppState *s) {
 	s->dirty = false;
 }
 
-void handle_text(AppState *s, int ch) {
-	if (ch == '\n' || ch == KEY_ENTER) {
+void handle_text(AppState *s, int ch)
+{
+	if (ch == '\n' || ch == KEY_ENTER)
+	{
 		uint8_t dummy[6];
-		if (ds4_string_to_mac(s->esp_mac, dummy)) {
+		if (ds4_string_to_mac(s->esp_mac, dummy))
+		{
 			s->is_editing = false;
 			s->esp_ok = true;
 			set_status(s, "MAC Manual definido.", CP_STATUS_GREEN);
-		} else {
+		}
+		else
+		{
 			set_status(s, "Formato Invalido (AA:BB:...)", CP_STATUS_RED);
 		}
-	} else if (ch == KEY_ESC) {
+	}
+	else if (ch == KEY_ESC)
+	{
 		s->is_editing = false;
 		strcpy(s->esp_mac, "--:--:--:--:--:--");
 		set_status(s, "Cancelado.", CP_DEFAULT);
-	} else if (ch == KEY_BACKSPACE || ch == 127 || ch == '\b') {
+	}
+	else if (ch == KEY_BACKSPACE || ch == 127 || ch == '\b')
+	{
 		int len = strlen(s->esp_mac);
-		if (len > 0) {
+		if (len > 0)
+		{
 			s->esp_mac[len - 1] = '\0';
 			s->dirty = true;
 		}
-	} else if (isprint(ch)) {
+	}
+	else if (isprint(ch))
+	{
 		char c = toupper((char)ch);
 		int len = strlen(s->esp_mac);
-		if (len < 17 && ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || c == ':')) {
+		if (len < 17 && ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || c == ':'))
+		{
 			s->esp_mac[len] = c;
 			s->esp_mac[len + 1] = '\0';
 			s->dirty = true;
@@ -337,79 +403,111 @@ void handle_text(AppState *s, int ch) {
 	}
 }
 
-void handle_nav(AppState *s, int ch) {
+void handle_nav(AppState *s, int ch)
+{
 	s->pressed_btn_idx = -1;
 	int old_idx = s->selected_idx;
-	switch (ch) {
-		case KEY_DOWN: case '\t':
-			if (s->selected_idx == BTN_SCAN_DS4) s->selected_idx = BTN_PAIR;
-			else if (s->selected_idx == BTN_SCAN_ESP) s->selected_idx = BTN_MANUAL;
-			else if (s->selected_idx == BTN_PAIR || s->selected_idx == BTN_MANUAL) {
-				s->last_col_btn = s->selected_idx;
-				s->selected_idx = BTN_EXIT;
-			}
-			break;
-		case KEY_UP:
-			if (s->selected_idx == BTN_EXIT) s->selected_idx = s->last_col_btn;
-			else if (s->selected_idx == BTN_PAIR) s->selected_idx = BTN_SCAN_DS4;
-			else if (s->selected_idx == BTN_MANUAL) s->selected_idx = BTN_SCAN_ESP;
-			break;
-		case KEY_RIGHT:
-			if (s->selected_idx == BTN_SCAN_DS4) s->selected_idx = BTN_SCAN_ESP;
-			else if (s->selected_idx == BTN_PAIR) s->selected_idx = BTN_MANUAL;
-			break;
-		case KEY_LEFT:
-			if (s->selected_idx == BTN_SCAN_ESP) s->selected_idx = BTN_SCAN_DS4;
-			else if (s->selected_idx == BTN_MANUAL) s->selected_idx = BTN_PAIR;
-			break;
-		case '\n': case KEY_ENTER: case ' ':
-			s->pressed_btn_idx = s->selected_idx;
-			force_render_sync(s);
-			SYSTEM_SLEEP(100);
-			s->pressed_btn_idx = -1;
-			trigger_action(s, s->selected_idx);
-			break;
+	switch (ch)
+	{
+	case KEY_DOWN:
+	case '\t':
+		if (s->selected_idx == BTN_SCAN_DS4)
+			s->selected_idx = BTN_PAIR;
+		else if (s->selected_idx == BTN_SCAN_ESP)
+			s->selected_idx = BTN_MANUAL;
+		else if (s->selected_idx == BTN_PAIR || s->selected_idx == BTN_MANUAL)
+		{
+			s->last_col_btn = s->selected_idx;
+			s->selected_idx = BTN_EXIT;
+		}
+		break;
+	case KEY_UP:
+		if (s->selected_idx == BTN_EXIT)
+			s->selected_idx = s->last_col_btn;
+		else if (s->selected_idx == BTN_PAIR)
+			s->selected_idx = BTN_SCAN_DS4;
+		else if (s->selected_idx == BTN_MANUAL)
+			s->selected_idx = BTN_SCAN_ESP;
+		break;
+	case KEY_RIGHT:
+		if (s->selected_idx == BTN_SCAN_DS4)
+			s->selected_idx = BTN_SCAN_ESP;
+		else if (s->selected_idx == BTN_PAIR)
+			s->selected_idx = BTN_MANUAL;
+		break;
+	case KEY_LEFT:
+		if (s->selected_idx == BTN_SCAN_ESP)
+			s->selected_idx = BTN_SCAN_DS4;
+		else if (s->selected_idx == BTN_MANUAL)
+			s->selected_idx = BTN_PAIR;
+		break;
+	case '\n':
+	case KEY_ENTER:
+	case ' ':
+		s->pressed_btn_idx = s->selected_idx;
+		force_render_sync(s);
+		SYSTEM_SLEEP(100);
+		s->pressed_btn_idx = -1;
+		trigger_action(s, s->selected_idx);
+		break;
 	}
-	if (old_idx != s->selected_idx) s->dirty = true;
+	if (old_idx != s->selected_idx)
+		s->dirty = true;
 }
 
-int get_hovered_button(AppState *s, int x, int y) {
-	for (int i = 0; i < BTN_COUNT; i++) {
+int get_hovered_button(AppState *s, int x, int y)
+{
+	for (int i = 0; i < BTN_COUNT; i++)
+	{
 		Button *b = &s->buttons[i];
-		if (x >= b->x && x < b->x + b->w && y >= b->y && y < b->y + b->h) return i;
+		if (x >= b->x && x < b->x + b->w && y >= b->y && y < b->y + b->h)
+			return i;
 	}
 	return -1;
 }
 
-void handle_mouse(AppState *s) {
+void handle_mouse(AppState *s)
+{
 	MEVENT event;
 #ifdef PLATFORM_WINDOWS
-	if (nc_getmouse(&event) != OK) return;
+	if (nc_getmouse(&event) != OK)
+		return;
 #else
-	if (getmouse(&event) != OK) return;
+	if (getmouse(&event) != OK)
+		return;
 #endif
 
 	int hovered = get_hovered_button(s, event.x, event.y);
-	if (hovered != -1 && s->selected_idx != hovered) {
+	if (hovered != -1 && s->selected_idx != hovered)
+	{
 		s->selected_idx = hovered;
-		if (hovered == BTN_PAIR || hovered == BTN_MANUAL) {
+		if (hovered == BTN_PAIR || hovered == BTN_MANUAL)
+		{
 			s->last_col_btn = hovered;
 		}
 		s->dirty = true;
 	}
 
-	if (event.bstate & BUTTON1_PRESSED) {
-		if (hovered != -1) {
+	if (event.bstate & BUTTON1_PRESSED)
+	{
+		if (hovered != -1)
+		{
 			s->pressed_btn_idx = hovered;
 			s->dirty = true;
 		}
-	} else if (event.bstate & BUTTON1_RELEASED) {
-		if (s->pressed_btn_idx != -1) {
-			if (s->pressed_btn_idx == hovered) {
+	}
+	else if (event.bstate & BUTTON1_RELEASED)
+	{
+		if (s->pressed_btn_idx != -1)
+		{
+			if (s->pressed_btn_idx == hovered)
+			{
 				s->pressed_btn_idx = -1;
 				force_render_sync(s);
 				trigger_action(s, hovered);
-			} else {
+			}
+			else
+			{
 				s->pressed_btn_idx = -1;
 				s->dirty = true;
 			}
@@ -417,22 +515,26 @@ void handle_mouse(AppState *s) {
 	}
 }
 
-void load_custom_font() {
+void load_custom_font()
+{
 #ifdef PLATFORM_WINDOWS
 	AddFontResourceExA(FONT_PATH, FR_PRIVATE | FR_NOT_ENUM, 0);
 #endif
 }
 
-void unload_custom_font() {
+void unload_custom_font()
+{
 #ifdef PLATFORM_WINDOWS
 	RemoveFontResourceExA(FONT_PATH, FR_PRIVATE | FR_NOT_ENUM, 0);
 #endif
 }
 
-void configure_terminal_colors() {
+void configure_terminal_colors()
+{
 	start_color();
 	use_default_colors();
-	if (can_change_color()) {
+	if (can_change_color())
+	{
 		init_color(COLOR_BLACK, 125, 125, 125);
 	}
 	init_pair(CP_DEFAULT, COLOR_WHITE, COLOR_BLACK);
@@ -447,7 +549,8 @@ void configure_terminal_colors() {
 	init_pair(CP_EDIT, COLOR_YELLOW, COLOR_BLACK);
 }
 
-void configure_terminal() {
+void configure_terminal()
+{
 	setlocale(LC_ALL, "");
 	initscr();
 
@@ -476,13 +579,17 @@ void configure_terminal() {
 	bkgd(COLOR_PAIR(CP_DEFAULT));
 }
 
-void handle_escape_key(AppState *s) {
+void handle_escape_key(AppState *s)
+{
 #ifdef PLATFORM_WINDOWS
-	if (s->is_editing) {
+	if (s->is_editing)
+	{
 		s->is_editing = false;
 		strcpy(s->esp_mac, "--:--:--:--:--:--");
 		set_status(s, "Cancelado.", CP_DEFAULT);
-	} else {
+	}
+	else
+	{
 		s->running = false;
 	}
 #else
@@ -490,23 +597,33 @@ void handle_escape_key(AppState *s) {
 #endif
 }
 
-void process_input(AppState *s, int ch) {
-	if (ch == KEY_MOUSE) {
+void process_input(AppState *s, int ch)
+{
+	if (ch == KEY_MOUSE)
+	{
 		handle_mouse(s);
-	} else if (ch == KEY_ESC) {
+	}
+	else if (ch == KEY_ESC)
+	{
 		handle_escape_key(s);
-	} else if (s->is_editing) {
+	}
+	else if (s->is_editing)
+	{
 		handle_text(s, ch);
-	} else {
+	}
+	else
+	{
 		handle_nav(s, ch);
 	}
 }
 
 #ifdef PLATFORM_WINDOWS
-void windows_apply_kiosk_mode() {
+void windows_apply_kiosk_mode()
+{
 	PDC_set_title("Tamandutech Core Collections (TTCC)");
 	HWND hwnd = GetActiveWindow();
-	if (hwnd) {
+	if (hwnd)
+	{
 		SetMenu(hwnd, NULL);
 		LONG lStyle = GetWindowLong(hwnd, GWL_STYLE);
 		lStyle |= WS_CAPTION;
@@ -517,9 +634,11 @@ void windows_apply_kiosk_mode() {
 					 SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 	}
 	HANDLE hInput = GetStdHandle(STD_INPUT_HANDLE);
-	if (hInput != INVALID_HANDLE_VALUE) {
+	if (hInput != INVALID_HANDLE_VALUE)
+	{
 		DWORD mode;
-		if (GetConsoleMode(hInput, &mode)) {
+		if (GetConsoleMode(hInput, &mode))
+		{
 			mode &= ~ENABLE_QUICK_EDIT_MODE;
 			mode |= ENABLE_EXTENDED_FLAGS;
 			mode |= ENABLE_MOUSE_INPUT;
@@ -528,13 +647,15 @@ void windows_apply_kiosk_mode() {
 	}
 }
 
-bool windows_check_dark_mode() {
+bool windows_check_dark_mode()
+{
 	HKEY key;
 	DWORD value = 1;
 	DWORD size = sizeof(value);
 	const char *path = "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize";
 
-	if (RegOpenKeyExA(HKEY_CURRENT_USER, path, 0, KEY_READ, &key) == ERROR_SUCCESS) {
+	if (RegOpenKeyExA(HKEY_CURRENT_USER, path, 0, KEY_READ, &key) == ERROR_SUCCESS)
+	{
 		RegQueryValueExA(key, "AppsUseLightTheme", NULL, NULL, (LPBYTE)&value, &size);
 		RegCloseKey(key);
 	}
@@ -542,17 +663,18 @@ bool windows_check_dark_mode() {
 	return value == 0;
 }
 
-void window_apply_theme() {
+void window_apply_theme()
+{
 	HWND hwnd = GetActiveWindow();
 	BOOL use_dark = windows_check_dark_mode();
 
-	if (hwnd) {
+	if (hwnd)
+	{
 		DwmSetWindowAttribute(
 			hwnd,
 			DWMWA_USE_IMMERSIVE_DARK_MODE,
 			&use_dark,
-			sizeof(use_dark)
-		);
+			sizeof(use_dark));
 
 		LONG_PTR style = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
 		SetWindowLongPtr(hwnd, GWL_EXSTYLE, style | WS_EX_LAYERED);
@@ -563,13 +685,13 @@ void window_apply_theme() {
 			hwnd,
 			NULL,
 			0, 0, 0, 0,
-			SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED
-		);
+			SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 	}
 }
 #endif
 
-int main(void) {
+int main(void)
+{
 	load_custom_font();
 	configure_terminal();
 
@@ -581,20 +703,26 @@ int main(void) {
 	AppState state;
 	init_state(&state);
 
-	while (state.running) {
+	while (state.running)
+	{
 		int ch;
-		while ((ch = getch()) != ERR) {
-			if (ch == KEY_RESIZE) {
+		while ((ch = getch()) != ERR)
+		{
+			if (ch == KEY_RESIZE)
+			{
 #ifdef PLATFORM_WINDOWS
 				resize_term(0, 0);
 #endif
 				state.dirty = true;
-			} else {
+			}
+			else
+			{
 				process_input(&state, ch);
 			}
 		}
 
-		if (state.dirty) {
+		if (state.dirty)
+		{
 			render(&state);
 		}
 

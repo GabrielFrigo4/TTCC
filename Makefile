@@ -152,7 +152,7 @@ endif
 
 PREFIX ?= /usr/local
 
-.PHONY: all dynamic static clean install uninstall
+.PHONY: all dynamic static clean clear install uninstall
 
 all: dynamic
 
@@ -194,7 +194,7 @@ $(TARGET_TUI): $(DIR_TUI)/ttcc.c $(LIB_DS4_A) $(LIB_ESP_A) $(TUI_RES)
 	@echo "[LD]  $@"
 	$(CC) $(CFLAGS_COMMON) $(SELECTED_LDFLAGS) $(CFLAGS_USB) $(CFLAGS_SP) $(CFLAGS_TUI) $(INCLUDES) -o $@ $< $(LIB_DS4_A) $(LIB_ESP_A) $(TUI_RES) $(SELECTED_USB_LIBS) $(SELECTED_SP_LIBS) $(SELECTED_TUI_LIBS)
 
-clean:
+clean clear:
 	@echo "[CLEAN] Removendo artefatos..."
 	rm -f $(ALL_TARGETS)
 	rm -f $(DIR_LIB)/*.a $(DIR_LIB)/*.o

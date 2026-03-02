@@ -135,6 +135,11 @@
  sudo ttds4 -w AA:BB:CC:DD:EE:FF
  ```
 
+ **Habilitar o Debug:**
+ ```bash
+ ttds4 -d
+ ```
+
 ---
 
 ## TTCC (TUI)
