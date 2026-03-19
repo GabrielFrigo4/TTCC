@@ -290,7 +290,7 @@ void draw_button(Button *b, bool selected, bool pressed)
 		wattron(stdscr, A_BOLD);
 		draw_outline(b->x, b->y, b->w, b->h);
 	}
-	int tx = b->x + (b->w - (strlen(b->label) + strlen(b->icon) - 1)) / 2;
+	int tx = b->x + (b->w - ((int)strlen(b->label) + (int)strlen(b->icon) - 1)) / 2;
 	int ty = b->y + (b->h / 2);
 	mvwprintw(stdscr, ty, tx, "%s %s", b->icon, b->label);
 	wattroff(stdscr, COLOR_PAIR(pair) | A_BOLD);
@@ -343,12 +343,12 @@ void render(AppState *s)
 	if (s->is_editing)
 	{
 		snprintf(help, sizeof(help), "ENTER: Confirmar | ESC: Cancelar");
-		x_pos = w - strlen(help) - 2;
+		x_pos = w - (int)strlen(help) - 2;
 	}
 	else
 	{
 		snprintf(help, sizeof(help), "%s Click/Enter: Select | %s Quit", ICON_MOUSE, ICON_EXIT);
-		x_pos = w - strlen(help) + 2;
+		x_pos = w - (int)strlen(help) + 2;
 	}
 	wattron(stdscr, COLOR_PAIR(CP_DEFAULT));
 	mvwprintw(stdscr, h - 2, x_pos, "%s", help);
@@ -383,7 +383,7 @@ void handle_text(AppState *s, int ch)
 	}
 	else if (ch == KEY_BACKSPACE || ch == 127 || ch == '\b')
 	{
-		int len = strlen(s->esp_mac);
+		int len = (int)strlen(s->esp_mac);
 		if (len > 0)
 		{
 			s->esp_mac[len - 1] = '\0';
@@ -392,8 +392,8 @@ void handle_text(AppState *s, int ch)
 	}
 	else if (isprint(ch))
 	{
-		char c = toupper((char)ch);
-		int len = strlen(s->esp_mac);
+		char c = (char)toupper((unsigned char)ch);
+		int len = (int)strlen(s->esp_mac);
 		if (len < 17 && ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || c == ':'))
 		{
 			s->esp_mac[len] = c;

@@ -1,11 +1,11 @@
-# ==========================================
-# 1. CONFIGURAÇÕES GERAIS
-# ==========================================
+CC       := gcc
+AR       := ar
+RC       := windres
 
-CC          := gcc
-AR          := ar
-RC          := windres
-CFLAGS_BASE := -std=c23 -Wall -Wextra -O2
+CFLAGS   := -std=c23 -O2 -fstack-protector-strong
+WFLAGS   := -Wformat=2 -Wall -Wextra -Wvla -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Werror -Wno-cpp
+CPPFLAGS := -D_POSIX_C_SOURCE=202405L -D_DEFAULT_SOURCE -D_FORTIFY_SOURCE=2
+LDFLAGS  := -flto
 
 DIR_LIB   := lib
 DIR_CLI   := cli
@@ -21,28 +21,27 @@ IS_LINUX   :=
 ifneq (,$(findstring MINGW,$(UNAME_S))$(findstring MSYS,$(UNAME_S))$(filter Windows_NT,$(OS)))
     IS_WINDOWS      := 1
     TARGET_EXT      := .exe
-    CFLAGS_PLATFORM := -D_POSIX_C_SOURCE=202405L -D_DEFAULT_SOURCE
+    CFLAGS_PLATFORM :=
 endif
 
 ifeq ($(UNAME_S),Darwin)
     IS_MACOS        := 1
     TARGET_EXT      :=
-    CFLAGS_PLATFORM := -D_POSIX_C_SOURCE=202405L -D_DEFAULT_SOURCE -D_DARWIN_C_SOURCE
-    PKG_CONFIG_PATH := $(shell brew --prefix ncurses)/lib/pkgconfig:$(PKG_CONFIG_PATH)
-    export PKG_CONFIG_PATH
+    CFLAGS_PLATFORM := -D_DARWIN_C_SOURCE
+    BREW_PREFIX     := $(shell brew --prefix 2>/dev/null)
+    ifneq ($(BREW_PREFIX),)
+        PKG_CONFIG_PATH := $(BREW_PREFIX)/lib/pkgconfig:$(shell brew --prefix ncurses 2>/dev/null)/lib/pkgconfig:$(PKG_CONFIG_PATH)
+        export PKG_CONFIG_PATH
+    endif
 endif
 
 ifeq ($(UNAME_S),Linux)
     IS_LINUX        := 1
     TARGET_EXT      :=
-    CFLAGS_PLATFORM := -D_POSIX_C_SOURCE=202405L -D_DEFAULT_SOURCE
+    CFLAGS_PLATFORM :=
 endif
 
-CFLAGS_COMMON = $(CFLAGS_BASE) $(CFLAGS_PLATFORM)
-
-# ==========================================
-# 2. DEFINIÇÃO DE BIBLIOTECAS
-# ==========================================
+CFLAGS_COMMON = $(CFLAGS) $(WFLAGS) $(CPPFLAGS) $(LDFLAGS) $(CFLAGS_PLATFORM)
 
 PKG_USB             := libusb-1.0
 CFLAGS_USB          := $(shell pkg-config --cflags $(PKG_USB))
@@ -67,54 +66,54 @@ else
 endif
 
 ifeq ($(IS_LINUX),1)
-    NCURSES_A := $(shell find /usr/lib /usr/lib64 /lib /lib64 -name "libncursesw.a" 2>/dev/null | head -n 1)
-    ifeq ($(NCURSES_A),)
+    NCURSES_A := $(shell $(CC) -print-file-name=libncursesw.a)
+    ifeq ($(NCURSES_A),libncursesw.a)
         LIBS_TUI_STATIC_RAW := $(shell pkg-config --static --libs $(PKG_TUI))
     else
-        TINFO_A := $(shell find /usr/lib /usr/lib64 /lib /lib64 -name "libtinfo.a" 2>/dev/null | head -n 1)
-        LIBS_TUI_STATIC_RAW := $(NCURSES_A) $(TINFO_A)
+        TINFO_A := $(shell $(CC) -print-file-name=libtinfo.a)
+        ifeq ($(TINFO_A),libtinfo.a)
+            LIBS_TUI_STATIC_RAW := $(NCURSES_A)
+        else
+            LIBS_TUI_STATIC_RAW := $(NCURSES_A) $(TINFO_A)
+        endif
     endif
 endif
 
 ifeq ($(IS_WINDOWS),1)
-    define link_hybrid_usb
-        -Wl,-Bstatic $(LIBS_USB_STATIC_RAW) -Wl,-Bdynamic
-    endef
-    define link_hybrid_sp
-        -Wl,-Bstatic $(LIBS_SP_STATIC_RAW) -Wl,-Bdynamic
-    endef
-    define link_hybrid_tui
-        $(LIBS_TUI_STATIC_RAW)
-    endef
+define link_hybrid_usb
+    -Wl,-Bstatic $(LIBS_USB_STATIC_RAW) -Wl,-Bdynamic
+endef
+define link_hybrid_sp
+    -Wl,-Bstatic $(LIBS_SP_STATIC_RAW) -Wl,-Bdynamic
+endef
+define link_hybrid_tui
+    $(LIBS_TUI_STATIC_RAW)
+endef
 endif
 
 ifeq ($(IS_MACOS),1)
-    define link_hybrid_usb
-        $(LIBS_USB_STATIC_RAW)
-    endef
-    define link_hybrid_sp
-        $(LIBS_SP_STATIC_RAW)
-    endef
-    define link_hybrid_tui
-        $(LIBS_TUI_STATIC_RAW)
-    endef
+define link_hybrid_usb
+    $(LIBS_USB_STATIC_RAW)
+endef
+define link_hybrid_sp
+    $(LIBS_SP_STATIC_RAW)
+endef
+define link_hybrid_tui
+    $(LIBS_TUI_STATIC_RAW)
+endef
 endif
 
 ifeq ($(IS_LINUX),1)
-    define link_hybrid_usb
-        -Wl,-Bstatic $(LIBS_USB_STATIC_RAW) -Wl,-Bdynamic
-    endef
-    define link_hybrid_sp
-        -Wl,-Bstatic $(LIBS_SP_STATIC_RAW) -Wl,-Bdynamic
-    endef
-    define link_hybrid_tui
-        $(LIBS_TUI_STATIC_RAW)
-    endef
+define link_hybrid_usb
+    -Wl,-Bstatic $(LIBS_USB_STATIC_RAW) -Wl,-Bdynamic
+endef
+define link_hybrid_sp
+    -Wl,-Bstatic $(LIBS_SP_STATIC_RAW) -Wl,-Bdynamic
+endef
+define link_hybrid_tui
+    $(LIBS_TUI_STATIC_RAW)
+endef
 endif
-
-# ==========================================
-# 3. SELEÇÃO DE MODO DE BUILD
-# ==========================================
 
 SELECTED_USB_LIBS := $(LIBS_USB_DYN_RAW)
 SELECTED_SP_LIBS  := $(LIBS_SP_DYN_RAW)
@@ -133,10 +132,6 @@ ifneq (,$(filter static,$(MAKECMDGOALS)))
         SELECTED_TUI_LIBS := $(link_hybrid_tui)
     endif
 endif
-
-# ==========================================
-# 4. TARGETS GERAIS
-# ==========================================
 
 TARGET_DS4  := ttds4$(TARGET_EXT)
 TARGET_ESP  := ttesp32$(TARGET_EXT)
