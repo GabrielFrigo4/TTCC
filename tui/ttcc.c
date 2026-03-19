@@ -639,7 +639,7 @@ void windows_apply_kiosk_mode()
 		DWORD mode;
 		if (GetConsoleMode(hInput, &mode))
 		{
-			mode &= ~ENABLE_QUICK_EDIT_MODE;
+			mode &= ~(DWORD)ENABLE_QUICK_EDIT_MODE;
 			mode |= ENABLE_EXTENDED_FLAGS;
 			mode |= ENABLE_MOUSE_INPUT;
 			SetConsoleMode(hInput, mode);
