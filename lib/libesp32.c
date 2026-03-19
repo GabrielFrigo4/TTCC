@@ -39,14 +39,14 @@
 
 static void platform_sleep_ms(int ms)
 {
-	#ifdef PLATFORM_WINDOWS
+#ifdef PLATFORM_WINDOWS
 	Sleep(ms);
-	#else
+#else
 	struct timespec ts;
 	ts.tv_sec = ms / 1000;
 	ts.tv_nsec = (ms % 1000) * 1000000;
 	nanosleep(&ts, NULL);
-	#endif
+#endif
 }
 
 static void reset_strategy_usb_native(struct sp_port *port)
@@ -114,21 +114,21 @@ static bool slip_write_frame(struct sp_port *port, uint8_t op, const uint8_t *da
 		(uint8_t)(checksum & 0xFF), (uint8_t)(checksum >> 8),
 		(uint8_t)(checksum >> 16), (uint8_t)(checksum >> 24)};
 
-		buffer[index++] = SLIP_BYTE_END;
+	buffer[index++] = SLIP_BYTE_END;
 
-		for (int i = 0; i < 8; i++)
-		{
-			slip_encode_byte(header[i], buffer, &index);
-		}
-		for (int i = 0; i < len; i++)
-		{
-			slip_encode_byte(data[i], buffer, &index);
-		}
+	for (int i = 0; i < 8; i++)
+	{
+		slip_encode_byte(header[i], buffer, &index);
+	}
+	for (int i = 0; i < len; i++)
+	{
+		slip_encode_byte(data[i], buffer, &index);
+	}
 
-		buffer[index++] = SLIP_BYTE_END;
+	buffer[index++] = SLIP_BYTE_END;
 
-		// Cast explícito para size_t para evitar avisos de sinal com sp_blocking_write
-		return sp_blocking_write(port, buffer, (size_t)index, TIMEOUT_WRITE_MS) == index;
+	// Cast explícito para size_t para evitar avisos de sinal com sp_blocking_write
+	return sp_blocking_write(port, buffer, (size_t)index, TIMEOUT_WRITE_MS) == index;
 }
 
 static int slip_read_frame(struct sp_port *port, uint8_t *out_buf, int max_len)
@@ -180,18 +180,18 @@ static bool perform_chip_sync(struct sp_port *port, int attempts)
 		0x07, 0x07, 0x12, 0x20, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55,
 		0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55,
 		0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55};
-		uint8_t response[128];
+	uint8_t response[128];
 
-		for (int i = 0; i < attempts; i++)
+	for (int i = 0; i < attempts; i++)
+	{
+		slip_write_frame(port, CMD_SYNC, sync_pattern, PACKET_SYNC_SIZE, 0);
+		// Cast explícito do sizeof para int para bater com a assinatura de slip_read_frame
+		if (slip_read_frame(port, response, (int)sizeof(response)) > 1)
 		{
-			slip_write_frame(port, CMD_SYNC, sync_pattern, PACKET_SYNC_SIZE, 0);
-			// Cast explícito do sizeof para int para bater com a assinatura de slip_read_frame
-			if (slip_read_frame(port, response, (int)sizeof(response)) > 1)
-			{
-				return true;
-			}
+			return true;
 		}
-		return false;
+	}
+	return false;
 }
 
 static uint32_t read_efuse_register(struct sp_port *port, uint32_t address)
@@ -199,22 +199,22 @@ static uint32_t read_efuse_register(struct sp_port *port, uint32_t address)
 	uint8_t payload[4] = {
 		(uint8_t)(address & 0xFF), (uint8_t)((address >> 8) & 0xFF),
 		(uint8_t)((address >> 16) & 0xFF), (uint8_t)((address >> 24) & 0xFF)};
-		uint8_t response[128];
+	uint8_t response[128];
 
-		for (int i = 0; i < ATTEMPTS_READ_REG; i++)
+	for (int i = 0; i < ATTEMPTS_READ_REG; i++)
+	{
+		slip_write_frame(port, CMD_READ_REG, payload, 4, 0);
+		// Cast explícito do sizeof para int
+		int len = slip_read_frame(port, response, (int)sizeof(response));
+
+		if (len >= 8 && response[1] == CMD_READ_REG)
 		{
-			slip_write_frame(port, CMD_READ_REG, payload, 4, 0);
-			// Cast explícito do sizeof para int
-			int len = slip_read_frame(port, response, (int)sizeof(response));
-
-			if (len >= 8 && response[1] == CMD_READ_REG)
-			{
-				return (uint32_t)response[4] | ((uint32_t)response[5] << 8) |
-				((uint32_t)response[6] << 16) | ((uint32_t)response[7] << 24);
-			}
-			sp_flush(port, SP_BUF_INPUT);
+			return (uint32_t)response[4] | ((uint32_t)response[5] << 8) |
+				   ((uint32_t)response[6] << 16) | ((uint32_t)response[7] << 24);
 		}
-		return 0;
+		sp_flush(port, SP_BUF_INPUT);
+	}
+	return 0;
 }
 
 static void format_mac_address(uint32_t low, uint32_t high, char *buffer, size_t size)
@@ -301,9 +301,9 @@ bool esp32_find_any_mac(char *mac_buf, size_t buf_size)
 	{
 		char *name = sp_get_port_name(ports[i]);
 		bool candidate = (strstr(name, "USB") || strstr(name, "usb") ||
-		strstr(name, "ACM") || strstr(name, "acm") ||
-		strstr(name, "COM") || strstr(name, "slab") ||
-		strstr(name, "wch"));
+						  strstr(name, "ACM") || strstr(name, "acm") ||
+						  strstr(name, "COM") || strstr(name, "slab") ||
+						  strstr(name, "wch"));
 
 		if (candidate)
 		{
