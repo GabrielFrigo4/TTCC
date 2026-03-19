@@ -40,7 +40,7 @@
 static void platform_sleep_ms(int ms)
 {
 #ifdef PLATFORM_WINDOWS
-	Sleep(ms);
+	Sleep((DWORD)ms);
 #else
 	struct timespec ts;
 	ts.tv_sec = ms / 1000;
