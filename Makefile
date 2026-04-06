@@ -5,7 +5,7 @@ RC       := windres
 CFLAGS   := -std=c23 -O2 -fstack-protector-strong -fPIE -flto
 WFLAGS   := -Wformat=2 -Wall -Wextra -Wvla -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Werror -Wno-cpp -Wno-missing-field-initializers -Wno-unknown-warning-option
 CPPFLAGS := -D_POSIX_C_SOURCE=202405L -D_DEFAULT_SOURCE -D_FORTIFY_SOURCE=2
-LDFLAGS  := -flto -pie -Wl,-z,relro,-z,now
+LDFLAGS  := -flto
 
 DIR_LIB   := lib
 DIR_CLI   := cli
@@ -19,16 +19,18 @@ IS_MACOS   :=
 IS_LINUX   :=
 
 ifneq (,$(findstring MINGW,$(UNAME_S))$(findstring MSYS,$(UNAME_S))$(filter Windows_NT,$(OS)))
-    IS_WINDOWS      := 1
-    TARGET_EXT      := .exe
-    CFLAGS_PLATFORM :=
+    IS_WINDOWS       := 1
+    TARGET_EXT       := .exe
+    CFLAGS_PLATFORM  :=
+    LDFLAGS_PLATFORM := -Wl,--dynamicbase,--nxcompat
 endif
 
 ifeq ($(UNAME_S),Darwin)
-    IS_MACOS        := 1
-    TARGET_EXT      :=
-    CFLAGS_PLATFORM := -D_DARWIN_C_SOURCE
-    BREW_PREFIX     := $(shell brew --prefix 2>/dev/null)
+    IS_MACOS         := 1
+    TARGET_EXT       :=
+    CFLAGS_PLATFORM  := -D_DARWIN_C_SOURCE
+    LDFLAGS_PLATFORM :=
+    BREW_PREFIX      := $(shell brew --prefix 2>/dev/null)
     ifneq ($(BREW_PREFIX),)
         PKG_CONFIG_PATH := $(BREW_PREFIX)/lib/pkgconfig:$(shell brew --prefix ncurses 2>/dev/null)/lib/pkgconfig:$(PKG_CONFIG_PATH)
         export PKG_CONFIG_PATH
@@ -36,12 +38,13 @@ ifeq ($(UNAME_S),Darwin)
 endif
 
 ifeq ($(UNAME_S),Linux)
-    IS_LINUX        := 1
-    TARGET_EXT      :=
-    CFLAGS_PLATFORM :=
+    IS_LINUX         := 1
+    TARGET_EXT       :=
+    CFLAGS_PLATFORM  :=
+    LDFLAGS_PLATFORM := -pie -Wl,-z,relro,-z,now
 endif
 
-CFLAGS_COMMON = $(CFLAGS) $(WFLAGS) $(CPPFLAGS) $(LDFLAGS) $(CFLAGS_PLATFORM)
+CFLAGS_COMMON = $(CFLAGS) $(WFLAGS) $(CPPFLAGS) $(CFLAGS_PLATFORM)
 
 PKG_USB             := libusb-1.0
 CFLAGS_USB          := $(shell pkg-config --cflags $(PKG_USB))
@@ -179,15 +182,15 @@ $(TUI_RES): $(DIR_TUI)/ttcc.rc
 
 $(TARGET_DS4): $(DIR_CLI)/ttds4.c $(LIB_DS4_A)
 	@echo "[LD]  $@"
-	$(CC) $(CFLAGS_COMMON) $(SELECTED_LDFLAGS) $(CFLAGS_USB) $(INCLUDES) -o $@ $< $(LIB_DS4_A) $(SELECTED_USB_LIBS)
+	$(CC) $(CFLAGS_COMMON) $(LDFLAGS) $(LDFLAGS_PLATFORM) $(SELECTED_LDFLAGS) $(CFLAGS_USB) $(INCLUDES) -o $@ $< $(LIB_DS4_A) $(SELECTED_USB_LIBS)
 
 $(TARGET_ESP): $(DIR_CLI)/ttesp32.c $(LIB_ESP_A)
 	@echo "[LD]  $@"
-	$(CC) $(CFLAGS_COMMON) $(SELECTED_LDFLAGS) $(CFLAGS_SP) $(INCLUDES) -o $@ $< $(LIB_ESP_A) $(SELECTED_SP_LIBS)
+	$(CC) $(CFLAGS_COMMON) $(LDFLAGS) $(LDFLAGS_PLATFORM) $(SELECTED_LDFLAGS) $(CFLAGS_SP) $(INCLUDES) -o $@ $< $(LIB_ESP_A) $(SELECTED_SP_LIBS)
 
 $(TARGET_TUI): $(DIR_TUI)/ttcc.c $(LIB_DS4_A) $(LIB_ESP_A) $(TUI_RES)
 	@echo "[LD]  $@"
-	$(CC) $(CFLAGS_COMMON) $(SELECTED_LDFLAGS) $(CFLAGS_USB) $(CFLAGS_SP) $(CFLAGS_TUI) $(INCLUDES) -o $@ $< $(LIB_DS4_A) $(LIB_ESP_A) $(TUI_RES) $(SELECTED_USB_LIBS) $(SELECTED_SP_LIBS) $(SELECTED_TUI_LIBS)
+	$(CC) $(CFLAGS_COMMON) $(LDFLAGS) $(LDFLAGS_PLATFORM) $(SELECTED_LDFLAGS) $(CFLAGS_USB) $(CFLAGS_SP) $(CFLAGS_TUI) $(INCLUDES) -o $@ $< $(LIB_DS4_A) $(LIB_ESP_A) $(TUI_RES) $(SELECTED_USB_LIBS) $(SELECTED_SP_LIBS) $(SELECTED_TUI_LIBS)
 
 clean clear:
 	@echo "[CLEAN] Removendo artefatos..."
