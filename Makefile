@@ -2,10 +2,10 @@ CC       := gcc
 AR       := ar
 RC       := windres
 
-CFLAGS   := -std=c23 -O2 -fstack-protector-strong
-WFLAGS   := -Wformat=2 -Wall -Wextra -Wvla -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Werror -Wno-cpp
+CFLAGS   := -std=c23 -O2 -fstack-protector-strong -fPIE
+WFLAGS   := -Wformat=2 -Wall -Wextra -Wvla -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Werror -Wno-cpp -Wno-missing-field-initializers -Wno-unknown-warning-option
 CPPFLAGS := -D_POSIX_C_SOURCE=202405L -D_DEFAULT_SOURCE -D_FORTIFY_SOURCE=2
-LDFLAGS  := -flto
+LDFLAGS  := -flto -pie -Wl,-z,relro,-z,now
 
 DIR_LIB   := lib
 DIR_CLI   := cli
